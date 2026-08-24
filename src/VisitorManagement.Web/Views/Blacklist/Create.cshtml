@@ -1,0 +1,30 @@
+@model BlacklistFormViewModel
+@{
+    ViewData["Title"] = "เพิ่มบัญชีดำ";
+}
+<div class="card vm-card p-4" style="max-width:640px">
+    <form method="post">
+        <div class="mb-3">
+            <label asp-for="FullName" class="form-label"></label>
+            <input asp-for="FullName" class="form-control" />
+        </div>
+        <div class="mb-3">
+            <label asp-for="NationalId" class="form-label"></label>
+            <input asp-for="NationalId" class="form-control" maxlength="13" />
+        </div>
+        <div class="mb-3">
+            <label asp-for="Reason" class="form-label"></label>
+            <textarea asp-for="Reason" class="form-control"></textarea>
+        </div>
+        <div class="mb-3">
+            <label asp-for="ExpiresAt" class="form-label"></label>
+            <input asp-for="ExpiresAt" class="form-control" type="date" />
+        </div>
+        <div class="form-check mb-3">
+            <input asp-for="IsActive" class="form-check-input" />
+            <label asp-for="IsActive" class="form-check-label"></label>
+        </div>
+        <button class="btn btn-teal">บันทึก</button>
+        <a class="btn btn-outline-secondary" asp-action="Index">ยกเลิก</a>
+    </form>
+</div>

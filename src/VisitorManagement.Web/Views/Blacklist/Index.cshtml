@@ -1,0 +1,37 @@
+@model IEnumerable<BlacklistEntry>
+@{
+    ViewData["Title"] = "บัญชีดำ";
+}
+
+<div class="d-flex justify-content-between mb-3">
+    <p class="text-muted mb-0">บุคคลในบัญชีดำจะถูกปฏิเสธตอน Check-in</p>
+    @if (User.IsInRole("Admin"))
+    {
+        <a class="btn btn-teal" asp-action="Create">เพิ่มรายชื่อ</a>
+    }
+</div>
+<div class="card vm-card p-3">
+    <table class="table align-middle">
+        <thead><tr><th>ชื่อ</th><th>เลขบัตร</th><th>เหตุผล</th><th>หมดอายุ</th><th>สถานะ</th><th></th></tr></thead>
+        <tbody>
+        @foreach (var x in Model)
+        {
+            <tr>
+                <td>@x.FullName</td>
+                <td>@ThaiNationalId.Mask(x.NationalId)</td>
+                <td>@x.Reason</td>
+                <td>@(x.ExpiresAt?.ToString("dd/MM/yyyy") ?? "ไม่หมดอายุ")</td>
+                <td>@(x.IsActive ? "ใช้งาน" : "ปิด")</td>
+                <td>
+                    @if (User.IsInRole("Admin"))
+                    {
+                        <form asp-action="Toggle" asp-route-id="@x.Id" method="post">
+                            <button class="btn btn-sm btn-outline-secondary">สลับสถานะ</button>
+                        </form>
+                    }
+                </td>
+            </tr>
+        }
+        </tbody>
+    </table>
+</div>

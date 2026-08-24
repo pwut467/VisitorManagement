@@ -1,0 +1,90 @@
+@model Visit
+@{
+    Layout = null;
+    var company = (CompanyProfile)ViewBag.Company;
+    var qr = ViewBag.Qr as string;
+    var autoPrint = ViewBag.AutoPrint as bool? == true;
+}
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="utf-8" />
+    <title>บัตร @Model.VisitNumber</title>
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        @@page { size: 80mm auto; margin: 0; }
+        * { box-sizing: border-box; }
+        body {
+            font-family: "IBM Plex Sans Thai", sans-serif;
+            width: 80mm;
+            margin: 0 auto;
+            padding: 4mm;
+            color: #111;
+        }
+        .badge-wrap { border: 2px solid #111; }
+        .head {
+            background: @(Model.VisitorType.Color);
+            color: #fff;
+            text-align: center;
+            padding: 6px 4px 4px;
+            font-weight: 700;
+            letter-spacing: .08em;
+        }
+        .company { font-size: 11px; font-weight: 600; }
+        .label { font-size: 18px; }
+        .body { padding: 8px; }
+        .row { display: flex; gap: 6px; }
+        .photo { width: 28mm; height: 34mm; object-fit: cover; background: #eee; border: 1px solid #ccc; }
+        .qr { width: 28mm; height: 28mm; }
+        .meta { font-size: 12px; line-height: 1.35; }
+        .num { font-size: 14px; font-weight: 700; }
+        .foot { font-size: 10px; text-align: center; border-top: 1px dashed #111; padding: 6px; }
+        .toolbar { text-align: center; margin-bottom: 8px; }
+        @@media print { .toolbar { display: none; } body { width: 80mm; } }
+    </style>
+</head>
+<body>
+    <div class="toolbar">
+        <button onclick="window.print()">พิมพ์บัตร (Thermal 80mm)</button>
+        <a href="/Visits/Details/@Model.Id">กลับ</a>
+    </div>
+    <div class="badge-wrap">
+        <div class="head">
+            <div class="company">@company.Name</div>
+            <div class="label">@Model.VisitorType.BadgeLabel</div>
+        </div>
+        <div class="body">
+            <div class="num">@Model.VisitNumber</div>
+            <div class="row">
+                @if (!string.IsNullOrEmpty(Model.PhotoPath))
+                {
+                    <img class="photo" src="@Model.PhotoPath" alt="photo" />
+                }
+                else
+                {
+                    <div class="photo"></div>
+                }
+                <div class="meta">
+                    <strong>@Model.Visitor.FullName</strong><br />
+                    @(Model.CompanyName ?? "-")<br />
+                    มาหา: @Model.HostEmployee.FullName<br />
+                    เข้า: @Model.CheckInAt?.ToString("dd/MM/yy HH:mm")<br />
+                    ถึง: @Model.ExpectedCheckoutAt?.ToString("HH:mm")
+                    @if (Model.RequiresEscort)
+                    {
+                        <br /><strong>ESCORT</strong>
+                    }
+                </div>
+            </div>
+            <div style="text-align:center;margin-top:6px">
+                <img class="qr" src="@qr" alt="QR" />
+            </div>
+        </div>
+        <div class="foot">@company.BadgeFooter</div>
+    </div>
+    @if (autoPrint)
+    {
+        <script>window.addEventListener('load', () => setTimeout(() => window.print(), 400));</script>
+    }
+</body>
+</html>

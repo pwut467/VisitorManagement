@@ -1,0 +1,85 @@
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Mvc.Authorization;
+using Microsoft.EntityFrameworkCore;
+using VisitorManagement.Web.Data;
+using VisitorManagement.Web.Models;
+using VisitorManagement.Web.Services;
+
+var builder = WebApplication.CreateBuilder(args);
+
+var provider = builder.Environment.IsEnvironment("Testing")
+    ? "InMemory"
+    : builder.Configuration["Database:Provider"] ?? "SqlServer";
+
+builder.Services.AddDbContext<AppDbContext>(options =>
+{
+    switch (provider)
+    {
+        case "InMemory":
+            options.UseInMemoryDatabase("VisitorManagement");
+            break;
+        case "Sqlite":
+            options.UseSqlite(builder.Configuration.GetConnectionString("Sqlite")
+                              ?? "Data Source=visitormanagement.db");
+            break;
+        default:
+            options.UseSqlServer(builder.Configuration.GetConnectionString("SqlServer"));
+            break;
+    }
+});
+
+builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>
+    {
+        options.Password.RequiredLength = 8;
+        options.Password.RequireNonAlphanumeric = false;
+        options.User.RequireUniqueEmail = true;
+        options.Lockout.MaxFailedAccessAttempts = 8;
+    })
+    .AddEntityFrameworkStores<AppDbContext>()
+    .AddDefaultTokenProviders();
+
+builder.Services.ConfigureApplicationCookie(options =>
+{
+    options.LoginPath = "/Account/Login";
+    options.AccessDeniedPath = "/Account/AccessDenied";
+    options.SlidingExpiration = true;
+});
+
+builder.Services.AddControllersWithViews(options =>
+{
+    var policy = new AuthorizationPolicyBuilder().RequireAuthenticatedUser().Build();
+    options.Filters.Add(new AuthorizeFilter(policy));
+});
+
+builder.Services.AddScoped<IVisitNumberService, VisitNumberService>();
+builder.Services.AddScoped<IQrCodeService, QrCodeService>();
+builder.Services.AddScoped<IPhotoStorageService, PhotoStorageService>();
+builder.Services.AddScoped<IBlacklistService, BlacklistService>();
+builder.Services.AddScoped<IAuditService, AuditService>();
+builder.Services.AddScoped<IVisitRegistrationService, VisitRegistrationService>();
+
+var app = builder.Build();
+
+if (!app.Environment.IsEnvironment("Testing"))
+{
+    await DbSeeder.SeedAsync(app.Services);
+}
+
+if (!app.Environment.IsDevelopment())
+{
+    app.UseExceptionHandler("/Home/Error");
+}
+
+app.UseStaticFiles();
+app.UseRouting();
+app.UseAuthentication();
+app.UseAuthorization();
+
+app.MapControllerRoute(
+    name: "default",
+    pattern: "{controller=Dashboard}/{action=Index}/{id?}");
+
+app.Run();
+
+public partial class Program;

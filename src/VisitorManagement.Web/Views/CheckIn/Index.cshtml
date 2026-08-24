@@ -1,0 +1,157 @@
+@model CheckInViewModel
+@{
+    ViewData["Title"] = "ลงทะเบียนผู้มาติดต่อ";
+    var isHostOnly = User.IsInRole("Host") && !User.IsInRole("Admin") && !User.IsInRole("Security") && !User.IsInRole("Reception");
+}
+
+<form asp-action="Index" method="post" id="checkin-form">
+    <input type="hidden" asp-for="VisitId" />
+    <input type="hidden" asp-for="PhotoDataUrl" />
+    <input type="hidden" asp-for="SubmitAction" />
+
+    <div class="row g-3">
+        <div class="col-lg-8">
+            <div class="card vm-card p-3 mb-3">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h2 class="h5 mb-0">ข้อมูลผู้มาติดต่อ</h2>
+                    <div class="d-flex gap-2">
+                        <button type="button" class="btn btn-outline-primary btn-sm" id="btn-read-card"><i class="bi bi-credit-card-2-front"></i> อ่านบัตรประชาชน</button>
+                        <button type="button" class="btn btn-outline-secondary btn-sm" id="btn-lookup">ค้นหาผู้เคยมา</button>
+                    </div>
+                </div>
+                <div id="id-alert" class="alert d-none"></div>
+                <div class="row g-2">
+                    <div class="col-md-4">
+                        <label asp-for="NationalId" class="form-label"></label>
+                        <input asp-for="NationalId" class="form-control" maxlength="13" inputmode="numeric" />
+                        <div class="form-text">13 หลัก พร้อมตรวจสอบ checksum</div>
+                    </div>
+                    <div class="col-md-2">
+                        <label asp-for="Title" class="form-label"></label>
+                        <select asp-for="Title" asp-items="Model.Titles" class="form-select"></select>
+                    </div>
+                    <div class="col-md-3">
+                        <label asp-for="FirstName" class="form-label"></label>
+                        <input asp-for="FirstName" class="form-control" />
+                    </div>
+                    <div class="col-md-3">
+                        <label asp-for="LastName" class="form-label"></label>
+                        <input asp-for="LastName" class="form-control" />
+                    </div>
+                    <div class="col-md-4">
+                        <label asp-for="Phone" class="form-label"></label>
+                        <input asp-for="Phone" class="form-control" />
+                    </div>
+                    <div class="col-md-4">
+                        <label asp-for="Email" class="form-label"></label>
+                        <input asp-for="Email" class="form-control" />
+                    </div>
+                    <div class="col-md-4">
+                        <label asp-for="CompanyName" class="form-label"></label>
+                        <input asp-for="CompanyName" class="form-control" />
+                    </div>
+                    <div class="col-12">
+                        <label asp-for="Address" class="form-label"></label>
+                        <input asp-for="Address" class="form-control" />
+                    </div>
+                </div>
+            </div>
+
+            <div class="card vm-card p-3 mb-3">
+                <h2 class="h5">รายละเอียดการเข้าพบ</h2>
+                <div class="row g-2">
+                    <div class="col-md-4">
+                        <label asp-for="VisitorTypeId" class="form-label"></label>
+                        <select asp-for="VisitorTypeId" asp-items="Model.VisitorTypes" class="form-select"></select>
+                    </div>
+                    <div class="col-md-4">
+                        <label asp-for="VisitPurposeId" class="form-label"></label>
+                        <select asp-for="VisitPurposeId" asp-items="Model.VisitPurposes" class="form-select"></select>
+                    </div>
+                    <div class="col-md-4">
+                        <label asp-for="HostEmployeeId" class="form-label"></label>
+                        <select asp-for="HostEmployeeId" asp-items="Model.Hosts" class="form-select"></select>
+                    </div>
+                    <div class="col-12">
+                        <label asp-for="PurposeDetail" class="form-label"></label>
+                        <input asp-for="PurposeDetail" class="form-control" />
+                    </div>
+                    <div class="col-md-4">
+                        <label asp-for="GateId" class="form-label"></label>
+                        <select asp-for="GateId" asp-items="Model.Gates" class="form-select"></select>
+                    </div>
+                    <div class="col-md-4">
+                        <label asp-for="ExpectedHours" class="form-label"></label>
+                        <input asp-for="ExpectedHours" class="form-control" type="number" min="1" max="24" />
+                    </div>
+                    <div class="col-md-4">
+                        <label asp-for="AccessArea" class="form-label"></label>
+                        <input asp-for="AccessArea" class="form-control" placeholder="เช่น อาคาร A ชั้น 3" />
+                    </div>
+                    <div class="col-md-4">
+                        <label asp-for="VehicleType" class="form-label"></label>
+                        <select asp-for="VehicleType" asp-items="Model.VehicleTypes" class="form-select"></select>
+                    </div>
+                    <div class="col-md-4">
+                        <label asp-for="VehiclePlate" class="form-label"></label>
+                        <input asp-for="VehiclePlate" class="form-control" />
+                    </div>
+                    <div class="col-md-4">
+                        <label asp-for="AccompanyingCount" class="form-label"></label>
+                        <input asp-for="AccompanyingCount" class="form-control" type="number" min="0" />
+                    </div>
+                    <div class="col-md-6">
+                        <label asp-for="AccompanyingNames" class="form-label"></label>
+                        <input asp-for="AccompanyingNames" class="form-control" />
+                    </div>
+                    <div class="col-md-6">
+                        <label asp-for="ItemsBrought" class="form-label"></label>
+                        <input asp-for="ItemsBrought" class="form-control" placeholder="โน้ตบุ๊ก, เครื่องมือ, เอกสาร" />
+                    </div>
+                    <div class="col-12">
+                        <div class="form-check">
+                            <input asp-for="RequiresEscort" class="form-check-input" />
+                            <label asp-for="RequiresEscort" class="form-check-label"></label>
+                        </div>
+                    </div>
+                    <div class="col-12">
+                        <label asp-for="Notes" class="form-label"></label>
+                        <textarea asp-for="Notes" class="form-control" rows="2"></textarea>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-4">
+            <div class="card vm-card p-3 mb-3">
+                <h2 class="h5">ถ่ายรูป</h2>
+                <div class="photo-frame mb-2" id="photo-frame">
+                    <video id="cam" autoplay playsinline muted></video>
+                    <img id="preview" class="d-none" alt="visitor photo" />
+                </div>
+                <div class="d-flex gap-2 flex-wrap">
+                    <button type="button" class="btn btn-outline-primary btn-sm" id="btn-start-cam">เปิดกล้อง</button>
+                    <button type="button" class="btn btn-teal btn-sm" id="btn-snap">ถ่ายรูป</button>
+                    <button type="button" class="btn btn-outline-secondary btn-sm" id="btn-retake">ถ่ายใหม่</button>
+                </div>
+            </div>
+            <div class="card vm-card p-3">
+                <div class="form-check mb-3">
+                    <input asp-for="PdpaConsent" class="form-check-input" />
+                    <label asp-for="PdpaConsent" class="form-check-label">
+                        ผู้มาติดต่อยินยอมให้เก็บข้อมูลส่วนบุคคลตาม <a asp-controller="Home" asp-action="Privacy" target="_blank">PDPA</a> เพื่อความปลอดภัยของสถานประกอบการ
+                    </label>
+                </div>
+                @if (!isHostOnly)
+                {
+                    <button class="btn btn-teal w-100 mb-2" type="submit" id="btn-checkin">บันทึกเข้า + พิมพ์บัตร</button>
+                }
+                <button class="btn btn-outline-primary w-100" type="submit" id="btn-prereg">ลงทะเบียนล่วงหน้า</button>
+            </div>
+        </div>
+    </div>
+</form>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script src="~/js/checkin.js" asp-append-version="true"></script>
+}

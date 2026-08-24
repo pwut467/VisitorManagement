@@ -1,0 +1,47 @@
+@model IEnumerable<Visit>
+@{
+    ViewData["Title"] = "ผู้ที่อยู่ในพื้นที่";
+    var now = (DateTime)ViewBag.Now;
+}
+
+<div class="card vm-card p-3">
+    <div class="table-responsive">
+        <table class="table align-middle">
+            <thead>
+            <tr>
+                <th>รหัสบัตร</th>
+                <th>ผู้มาติดต่อ</th>
+                <th>มาหา / แผนก</th>
+                <th>จุดเข้า</th>
+                <th>เข้าเมื่อ</th>
+                <th>กำหนดออก</th>
+                <th></th>
+            </tr>
+            </thead>
+            <tbody>
+            @foreach (var v in Model)
+            {
+                <tr class="@(v.IsOverstay(now) ? "overstay" : "")">
+                    <td class="fw-semibold">@v.VisitNumber</td>
+                    <td>
+                        @v.Visitor.FullName
+                        <div class="small text-muted">@v.CompanyName · @v.VisitorType.Name</div>
+                    </td>
+                    <td>@v.HostEmployee.FullName<br /><span class="small text-muted">@v.HostEmployee.Department.Name</span></td>
+                    <td>@v.GateIn?.Name</td>
+                    <td>@v.CheckInAt?.ToString("HH:mm")</td>
+                    <td>@v.ExpectedCheckoutAt?.ToString("HH:mm")</td>
+                    <td class="text-nowrap">
+                        <a class="btn btn-sm btn-teal" asp-controller="CheckOut" asp-action="Index" asp-route-code="@v.VisitNumber">Check-out</a>
+                        <a class="btn btn-sm btn-outline-secondary" asp-action="Badge" asp-route-id="@v.Id">พิมพ์บัตร</a>
+                    </td>
+                </tr>
+            }
+            @if (!Model.Any())
+            {
+                <tr><td colspan="7" class="text-muted">ไม่มีผู้มาติดต่ออยู่ในพื้นที่</td></tr>
+            }
+            </tbody>
+        </table>
+    </div>
+</div>

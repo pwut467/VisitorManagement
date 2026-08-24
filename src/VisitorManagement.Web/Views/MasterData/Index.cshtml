@@ -1,0 +1,109 @@
+@{
+    ViewData["Title"] = "ข้อมูลหลัก";
+    var departments = (IEnumerable<Department>)ViewBag.Departments;
+    var gates = (IEnumerable<Gate>)ViewBag.Gates;
+    var types = (IEnumerable<VisitorType>)ViewBag.Types;
+    var purposes = (IEnumerable<VisitPurpose>)ViewBag.Purposes;
+}
+
+<div class="row g-3">
+    <div class="col-lg-6">
+        <div class="card vm-card p-3 mb-3">
+            <h2 class="h5">แผนก</h2>
+            <form asp-action="AddDepartment" method="post" class="row g-2 mb-3">
+                <div class="col-4"><input name="code" class="form-control" placeholder="รหัส" /></div>
+                <div class="col-5"><input name="name" class="form-control" placeholder="ชื่อแผนก" /></div>
+                <div class="col-3"><button class="btn btn-teal w-100">เพิ่ม</button></div>
+            </form>
+            <table class="table"><tbody>
+            @foreach (var d in departments)
+            {
+                <tr>
+                    <td>@d.Code</td><td>@d.Name</td><td>@(d.IsActive ? "ใช้งาน" : "ปิด")</td>
+                    <td>
+                        <form asp-action="Toggle" method="post">
+                            <input type="hidden" name="entity" value="department" />
+                            <input type="hidden" name="id" value="@d.Id" />
+                            <button class="btn btn-sm btn-outline-secondary">สลับ</button>
+                        </form>
+                    </td>
+                </tr>
+            }
+            </tbody></table>
+        </div>
+        <div class="card vm-card p-3">
+            <h2 class="h5">จุดเข้า-ออก</h2>
+            <form asp-action="AddGate" method="post" class="row g-2 mb-3">
+                <div class="col-5"><input name="name" class="form-control" placeholder="ชื่อประตู" /></div>
+                <div class="col-4"><input name="location" class="form-control" placeholder="ตำแหน่ง" /></div>
+                <div class="col-3"><button class="btn btn-teal w-100">เพิ่ม</button></div>
+            </form>
+            <table class="table"><tbody>
+            @foreach (var g in gates)
+            {
+                <tr>
+                    <td>@g.Name</td><td>@g.Location</td><td>@(g.IsActive ? "ใช้งาน" : "ปิด")</td>
+                    <td>
+                        <form asp-action="Toggle" method="post">
+                            <input type="hidden" name="entity" value="gate" />
+                            <input type="hidden" name="id" value="@g.Id" />
+                            <button class="btn btn-sm btn-outline-secondary">สลับ</button>
+                        </form>
+                    </td>
+                </tr>
+            }
+            </tbody></table>
+        </div>
+    </div>
+    <div class="col-lg-6">
+        <div class="card vm-card p-3 mb-3">
+            <h2 class="h5">ประเภทผู้มาติดต่อ</h2>
+            <form asp-action="AddType" method="post" class="row g-2 mb-3">
+                <div class="col-4"><input name="name" class="form-control" placeholder="ชื่อ" /></div>
+                <div class="col-3"><input name="badgeLabel" class="form-control" placeholder="GUEST" /></div>
+                <div class="col-2"><input name="color" class="form-control" type="color" value="#1a56a0" /></div>
+                <div class="col-3"><button class="btn btn-teal w-100">เพิ่ม</button></div>
+            </form>
+            <table class="table"><tbody>
+            @foreach (var t in types)
+            {
+                <tr>
+                    <td><span class="badge" style="background:@t.Color">@t.BadgeLabel</span></td>
+                    <td>@t.Name</td>
+                    <td>@(t.IsActive ? "ใช้งาน" : "ปิด")</td>
+                    <td>
+                        <form asp-action="Toggle" method="post">
+                            <input type="hidden" name="entity" value="type" />
+                            <input type="hidden" name="id" value="@t.Id" />
+                            <button class="btn btn-sm btn-outline-secondary">สลับ</button>
+                        </form>
+                    </td>
+                </tr>
+            }
+            </tbody></table>
+        </div>
+        <div class="card vm-card p-3">
+            <h2 class="h5">วัตถุประสงค์</h2>
+            <form asp-action="AddPurpose" method="post" class="row g-2 mb-3">
+                <div class="col-9"><input name="name" class="form-control" placeholder="วัตถุประสงค์" /></div>
+                <div class="col-3"><button class="btn btn-teal w-100">เพิ่ม</button></div>
+            </form>
+            <table class="table"><tbody>
+            @foreach (var p in purposes)
+            {
+                <tr>
+                    <td>@p.Name</td>
+                    <td>@(p.IsActive ? "ใช้งาน" : "ปิด")</td>
+                    <td>
+                        <form asp-action="Toggle" method="post">
+                            <input type="hidden" name="entity" value="purpose" />
+                            <input type="hidden" name="id" value="@p.Id" />
+                            <button class="btn btn-sm btn-outline-secondary">สลับ</button>
+                        </form>
+                    </td>
+                </tr>
+            }
+            </tbody></table>
+        </div>
+    </div>
+</div>

@@ -1,0 +1,139 @@
+using System.Security.Claims;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Rendering;
+using Microsoft.EntityFrameworkCore;
+using VisitorManagement.Web.Data;
+using VisitorManagement.Web.Models;
+using VisitorManagement.Web.Services;
+using VisitorManagement.Web.ViewModels;
+
+namespace VisitorManagement.Web.Controllers;
+
+[Authorize(Roles = AppRoles.Staff)]
+public class CheckInController : Controller
+{
+    private readonly AppDbContext _db;
+    private readonly IVisitRegistrationService _registration;
+
+    public CheckInController(AppDbContext db, IVisitRegistrationService registration)
+    {
+        _db = db;
+        _registration = registration;
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> Index(int? visitId)
+    {
+        var model = new CheckInViewModel();
+        if (visitId is int id)
+        {
+            var visit = await _db.Visits
+                .Include(v => v.Visitor)
+                .FirstOrDefaultAsync(v => v.Id == id);
+            if (visit is not null)
+            {
+                model.VisitId = visit.Id;
+                model.NationalId = visit.Visitor.NationalId;
+                model.Title = visit.Visitor.Title;
+                model.FirstName = visit.Visitor.FirstName;
+                model.LastName = visit.Visitor.LastName;
+                model.Phone = visit.Visitor.Phone ?? "";
+                model.Email = visit.Visitor.Email;
+                model.CompanyName = visit.CompanyName ?? visit.Visitor.CompanyName;
+                model.Address = visit.Visitor.Address;
+                model.VisitorTypeId = visit.VisitorTypeId;
+                model.VisitPurposeId = visit.VisitPurposeId;
+                model.PurposeDetail = visit.PurposeDetail;
+                model.HostEmployeeId = visit.HostEmployeeId;
+                model.GateId = visit.GateInId ?? 0;
+                model.VehiclePlate = visit.VehiclePlate;
+                model.VehicleType = visit.VehicleType;
+                model.ItemsBrought = visit.ItemsBrought;
+                model.AccompanyingCount = visit.AccompanyingCount;
+                model.AccompanyingNames = visit.AccompanyingNames;
+                model.RequiresEscort = visit.RequiresEscort;
+                model.AccessArea = visit.AccessArea;
+                model.Notes = visit.Notes;
+            }
+        }
+
+        await PopulateAsync(model);
+        return View(model);
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> Index(CheckInViewModel model)
+    {
+        await PopulateAsync(model);
+        if (!ModelState.IsValid)
+        {
+            return View(model);
+        }
+
+        if (User.IsInRole(AppRoles.Host) && !User.IsInRole(AppRoles.Admin) && !User.IsInRole(AppRoles.Security) && !User.IsInRole(AppRoles.Reception))
+        {
+            model.SubmitAction = "preregister";
+        }
+
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? "";
+        var result = await _registration.RegisterAsync(model, userId);
+        if (!result.Succeeded)
+        {
+            TempData["Error"] = result.Error;
+            if (result.Blacklist is not null)
+            {
+                TempData["Error"] = "ปฏิเสธการเข้าพื้นที่ — " + result.Error;
+            }
+            return View(model);
+        }
+
+        TempData["Success"] = model.SubmitAction == "preregister"
+            ? $"ลงทะเบียนล่วงหน้า {result.Visit!.VisitNumber} เรียบร้อย"
+            : $"Check-in {result.Visit!.VisitNumber} เรียบร้อย";
+
+        if (model.SubmitAction == "preregister")
+        {
+            return RedirectToAction("Details", "Visits", new { id = result.Visit!.Id });
+        }
+
+        return RedirectToAction("Badge", "Visits", new { id = result.Visit!.Id, autoprint = true });
+    }
+
+    private async Task PopulateAsync(CheckInViewModel model)
+    {
+        var company = await _db.CompanyProfiles.FirstOrDefaultAsync();
+        if (model.ExpectedHours <= 0)
+        {
+            model.ExpectedHours = company?.DefaultVisitHours ?? 2;
+        }
+
+        model.Titles = new[] { "นาย", "นาง", "นางสาว", "อื่นๆ" }
+            .Select(t => new SelectListItem(t, t, t == model.Title));
+        model.VisitorTypes = await _db.VisitorTypes.Where(x => x.IsActive)
+            .OrderBy(x => x.Name)
+            .Select(x => new SelectListItem { Value = x.Id.ToString(), Text = x.Name, Selected = x.Id == model.VisitorTypeId })
+            .ToListAsync();
+        model.VisitPurposes = await _db.VisitPurposes.Where(x => x.IsActive)
+            .OrderBy(x => x.Name)
+            .Select(x => new SelectListItem { Value = x.Id.ToString(), Text = x.Name, Selected = x.Id == model.VisitPurposeId })
+            .ToListAsync();
+        model.Hosts = await _db.Employees.Where(x => x.IsActive)
+            .Include(x => x.Department)
+            .OrderBy(x => x.FullName)
+            .Select(x => new SelectListItem
+            {
+                Value = x.Id.ToString(),
+                Text = $"{x.FullName} ({x.Department.Name})",
+                Selected = x.Id == model.HostEmployeeId
+            })
+            .ToListAsync();
+        model.Gates = await _db.Gates.Where(x => x.IsActive)
+            .OrderBy(x => x.Name)
+            .Select(x => new SelectListItem { Value = x.Id.ToString(), Text = x.Name, Selected = x.Id == model.GateId })
+            .ToListAsync();
+        model.VehicleTypes = new[] { "", "รถยนต์", "รถกระบะ", "รถจักรยานยนต์", "รถตู้", "รถบรรทุก" }
+            .Select(t => new SelectListItem(string.IsNullOrEmpty(t) ? "— ไม่มีรถ —" : t, t, t == (model.VehicleType ?? "")));
+    }
+}
