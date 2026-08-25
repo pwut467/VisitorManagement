@@ -35,12 +35,9 @@ public class DashboardController : Controller
             OnSiteCount = onSite.Count,
             TodayCheckIns = await visits.CountAsync(v => v.CheckInAt >= today && v.CheckInAt < tomorrow),
             TodayCheckOuts = await visits.CountAsync(v => v.CheckOutAt >= today && v.CheckOutAt < tomorrow),
-            PendingPreReg = await visits.CountAsync(v => v.Status == VisitStatus.PreRegistered && (v.AppointmentAt == null || v.AppointmentAt >= today)),
             OnSite = onSite.Take(8).ToList(),
-            Overstay = onSite.Where(v => v.IsOverstay(now)).ToList(),
             Recent = await visits.OrderByDescending(v => v.CreatedAt).Take(8).ToListAsync()
         };
-        vm.OverstayCount = vm.Overstay.Count;
 
         var todayIns = await _db.Visits
             .Where(v => v.CheckInAt >= today && v.CheckInAt < tomorrow)

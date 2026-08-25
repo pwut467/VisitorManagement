@@ -11,6 +11,7 @@
             <tr>
                 <th>รหัสบัตร</th>
                 <th>ผู้มาติดต่อ</th>
+                <th>ทะเบียนรถ</th>
                 <th>มาหา / แผนก</th>
                 <th>จุดเข้า</th>
                 <th>เข้าเมื่อ</th>
@@ -27,6 +28,7 @@
                         @v.Visitor.FullName
                         <div class="small text-muted">@v.CompanyName · @v.VisitorType.Name</div>
                     </td>
+                    <td class="text-nowrap">@(string.IsNullOrWhiteSpace(v.VehiclePlate) ? "—" : v.VehiclePlate)</td>
                     <td>@v.HostEmployee.FullName<br /><span class="small text-muted">@v.HostEmployee.Department.Name</span></td>
                     <td>@v.GateIn?.Name</td>
                     <td>@v.CheckInAt?.ToString("HH:mm")</td>
@@ -39,7 +41,7 @@
             }
             @if (!Model.Any())
             {
-                <tr><td colspan="7" class="text-muted">ไม่มีผู้มาติดต่ออยู่ในพื้นที่</td></tr>
+                <tr><td colspan="8" class="text-muted">ไม่มีผู้มาติดต่ออยู่ในพื้นที่</td></tr>
             }
             </tbody>
         </table>
