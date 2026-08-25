@@ -95,8 +95,17 @@ public class CheckInController : Controller
             return RedirectToAction("Details", "Visits", new { id = result.Visit!.Id });
         }
 
-        var autoPrint = await _db.CompanyProfiles.Select(c => c.AutoPrintBadge).FirstOrDefaultAsync();
-        return RedirectToAction("Badge", "Visits", new { id = result.Visit!.Id, autoprint = autoPrint });
+        var autoPrint = await _db.CompanyProfiles
+            .AsNoTracking()
+            .Select(c => (bool?)c.AutoPrintBadge)
+            .FirstOrDefaultAsync() ?? true;
+        if (autoPrint)
+        {
+            TempData["PrintBadgeUrl"] = Url.Action("Badge", "Visits", new { id = result.Visit!.Id, autoprint = "true" });
+            return RedirectToAction(nameof(Index));
+        }
+
+        return RedirectToAction("Badge", "Visits", new { id = result.Visit!.Id, autoprint = "false" });
     }
 
     private async Task PopulateAsync(CheckInViewModel model)

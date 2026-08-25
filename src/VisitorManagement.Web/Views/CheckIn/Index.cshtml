@@ -2,6 +2,7 @@
 @{
     ViewData["Title"] = "ลงทะเบียนผู้มาติดต่อ";
     var isHostOnly = User.IsInRole("Host") && !User.IsInRole("Admin") && !User.IsInRole("Security") && !User.IsInRole("Reception");
+    var printBadgeUrl = TempData["PrintBadgeUrl"] as string;
 }
 
 <form asp-action="Index" method="post" id="checkin-form">
@@ -115,7 +116,7 @@
                 </div>
                 @if (!isHostOnly)
                 {
-                    var printDirect = ViewBag.AutoPrintBadge as bool? ?? true;
+                    var printDirect = ViewFlag.IsOn(ViewBag.AutoPrintBadge, whenMissing: true);
                     <button class="btn btn-teal w-100 mb-2" type="submit" id="btn-checkin">@(printDirect ? "บันทึกเข้า + พิมพ์บัตร" : "บันทึกเข้า + ดูตัวอย่างบัตร")</button>
                 }
                 <button class="btn btn-outline-primary w-100" type="submit" id="btn-prereg">ลงทะเบียนล่วงหน้า</button>
@@ -123,6 +124,11 @@
         </div>
     </div>
 </form>
+@if (!string.IsNullOrEmpty(printBadgeUrl))
+{
+    <iframe id="badge-print-frame" title="พิมพ์บัตรผู้มาติดต่อ" src="@printBadgeUrl"
+            style="position:absolute;left:-10000px;top:0;width:80mm;height:200mm;border:0"></iframe>
+}
 
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />

@@ -105,7 +105,7 @@ public class VisitsController : Controller
     }
 
     [Authorize(Roles = AppRoles.FrontDesk)]
-    public async Task<IActionResult> Badge(int id, bool autoprint = false)
+    public async Task<IActionResult> Badge(int id, string? autoprint = null)
     {
         var visit = await LoadAsync(id);
         if (visit is null)
@@ -118,7 +118,7 @@ public class VisitsController : Controller
 
         ViewBag.BarcodeSvg = Code128Barcode.Svg(visit.VisitNumber);
         ViewBag.Company = await _db.CompanyProfiles.FirstAsync();
-        ViewBag.AutoPrint = autoprint;
+        ViewBag.AutoPrint = VisitorManagement.Web.ViewFlag.IsOn(autoprint);
         return View(visit);
     }
 
