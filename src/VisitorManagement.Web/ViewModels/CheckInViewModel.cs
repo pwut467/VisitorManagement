@@ -36,6 +36,9 @@ public class CheckInViewModel
     [Display(Name = "ที่อยู่")]
     public string? Address { get; set; }
 
+    [Display(Name = "วันเกิด")]
+    public string? DateOfBirth { get; set; }
+
     [Display(Name = "ประเภทผู้มาติดต่อ")]
     [Required]
     public int VisitorTypeId { get; set; }

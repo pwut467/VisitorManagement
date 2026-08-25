@@ -44,7 +44,7 @@ Check-out
 | **รายงาน / ส่งออก CSV** | สรุปรายวันให้ฝ่ายบุคคลหรือความปลอดภัย |
 | **Audit log** | ใครเป็นคน Check-in / Check-out |
 
-ส่วนที่ออกแบบไว้ต่อได้ (ยังไม่ทำในเวอร์ชันนี้): เชื่อมเครื่องอ่านบัตรจริงผ่าน agent ที่ `127.0.0.1:5001`, QZ Tray/ESC-POS ยิงพิมพ์ตรง, แจ้งเตือน Host ทางอีเมล/ไลน์, Kiosk ลงทะเบียนเอง, หลายสาขา
+ส่วนที่ออกแบบไว้ต่อได้: QZ Tray/ESC-POS ยิงพิมพ์ตรง, แจ้งเตือน Host ทางอีเมล/ไลน์, Kiosk ลงทะเบียนเอง, หลายสาขา
 
 ## สิทธิ์ผู้ใช้
 
@@ -125,24 +125,41 @@ ASPNETCORE_ENVIRONMENT=Production dotnet run --project src/VisitorManagement.Web
 
 ถ้าต้องการยิง ESC/POS ตรงเครื่องโดยไม่ผ่านไดอะล็อกเบราว์เซอร์ ให้ต่อด้วย print agent (เช่น QZ Tray) ในเฟสถัดไป
 
-## เครื่องอ่านบัตรประชาชน
+## เครื่องอ่านบัตรประชาชน (ของจริง)
 
-ปุ่ม **อ่านบัตรประชาชน** จะเรียก `http://127.0.0.1:5001/api/thcard` ก่อน (agent บนเครื่อง รปภ. ที่ต่อ USB reader)
+เบราว์เซอร์อ่านเครื่อง USB Smart Card ไม่ได้โดยตรง ต้องเปิด **โปรแกรมอ่านบัตรบนเครื่อง รปภ.** ที่เสียบเครื่องอ่าน
 
-ถ้าไม่มี agent ระบบจะเติมข้อมูลตัวอย่างเพื่อสาธิต แล้วยังกรอกมือหรือค้นหาผู้เคยมาจากเลขบัตรได้
+1. เสียบเครื่องอ่านบัตรประชาชน (มาตรฐาน PC/SC เช่น ACS, CREATOR, Gemalto)
+2. Windows: เปิดบริการ **Smart Card** และติดตั้งไดรเวอร์เครื่องอ่าน  
+   Linux: ติดตั้ง `pcscd` / `libpcsclite`
+3. บนเครื่องนั้นรัน:
 
-รูปแบบ JSON ที่ agent ควรคืน:
-
-```json
-{
-  "nationalId": "3101700123452",
-  "title": "นาย",
-  "firstName": "ชื่อ",
-  "lastName": "นามสกุล",
-  "address": "ที่อยู่",
-  "dateOfBirth": "1988-05-12"
-}
+```bash
+dotnet run --project src/VisitorManagement.CardReader
 ```
+
+หรือดับเบิลคลิก `src/VisitorManagement.CardReader/start-card-reader.bat`
+
+โปรแกรมจะฟังที่ `http://127.0.0.1:5001`
+
+4. เปิดหน้า Check-in ในเบราว์เซอร์บนเครื่องเดียวกัน
+5. เสียบบัตร แล้วกด **อ่านบัตรประชาชน**
+
+ระบบจะอ่านผ่าน APDU ของบัตรประชาชนไทย: เลขบัตร 13 หลัก, คำนำหน้า/ชื่อ/นามสกุล (TIS-620), ที่อยู่, วันเกิด, เพศ, รูป JPEG บนบัตร
+
+สถานะบนหน้า Check-in:
+
+- **ยังไม่เปิดโปรแกรมอ่านบัตร** — ยังไม่ได้รัน CardReader
+- **ไม่พบเครื่องอ่าน** — ยังไม่ได้เสียบ USB reader
+- **พร้อมอ่าน — ยังไม่มีบัตร** — เสียบบัตรได้เลย
+- **พบบัตรในเครื่องอ่าน** — กดอ่านได้
+
+ถ้ายังไม่มีบัตร ปุ่มอ่านจะรอสูงสุด 30 วินาทีให้เสียบบัตร ไม่มีการเติมข้อมูลจำลอง
+
+API ของโปรแกรมอ่านบัตร:
+
+- `GET /api/status` — รายชื่อเครื่องอ่าน และว่ามีบัตรหรือไม่
+- `GET /api/thcard?photo=true` — อ่านบัตรจริง คืน JSON + รูป base64
 
 ## ทดสอบ
 
@@ -155,7 +172,9 @@ dotnet test
 ## โครงสร้างโปรเจกต์
 
 ```
-src/VisitorManagement.Web     เว็บ MVC
+src/VisitorManagement.Web              เว็บ MVC
+src/VisitorManagement.CardReader       โปรแกรมอ่านบัตรบนเครื่อง รปภ. (PC/SC)
+src/VisitorManagement.CardReader.Core  APDU + ถอดรหัส TIS-620
 tests/VisitorManagement.Web.Tests
-docker-compose.yml            SQL Server 2022
+docker-compose.yml                     SQL Server 2022
 ```

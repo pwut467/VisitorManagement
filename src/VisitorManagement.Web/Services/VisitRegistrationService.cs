@@ -93,6 +93,10 @@ public class VisitRegistrationService : IVisitRegistrationService
         visitor.Email = model.Email?.Trim();
         visitor.CompanyName = model.CompanyName?.Trim();
         visitor.Address = model.Address?.Trim();
+        if (DateTime.TryParse(model.DateOfBirth, out var dob))
+        {
+            visitor.DateOfBirth = dob;
+        }
         visitor.UpdatedAt = now;
 
         Visit visit;

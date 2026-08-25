@@ -15,11 +15,13 @@ public class CheckInController : Controller
 {
     private readonly AppDbContext _db;
     private readonly IVisitRegistrationService _registration;
+    private readonly IConfiguration _config;
 
-    public CheckInController(AppDbContext db, IVisitRegistrationService registration)
+    public CheckInController(AppDbContext db, IVisitRegistrationService registration, IConfiguration config)
     {
         _db = db;
         _registration = registration;
+        _config = config;
     }
 
     [HttpGet]
@@ -42,6 +44,7 @@ public class CheckInController : Controller
                 model.Email = visit.Visitor.Email;
                 model.CompanyName = visit.CompanyName ?? visit.Visitor.CompanyName;
                 model.Address = visit.Visitor.Address;
+                model.DateOfBirth = visit.Visitor.DateOfBirth?.ToString("yyyy-MM-dd");
                 model.VisitorTypeId = visit.VisitorTypeId;
                 model.VisitPurposeId = visit.VisitPurposeId;
                 model.PurposeDetail = visit.PurposeDetail;
@@ -135,5 +138,6 @@ public class CheckInController : Controller
             .ToListAsync();
         model.VehicleTypes = new[] { "", "รถยนต์", "รถกระบะ", "รถจักรยานยนต์", "รถตู้", "รถบรรทุก" }
             .Select(t => new SelectListItem(string.IsNullOrEmpty(t) ? "— ไม่มีรถ —" : t, t, t == (model.VehicleType ?? "")));
+        ViewBag.CardReaderUrl = _config["CardReader:AgentUrl"] ?? "http://127.0.0.1:5001";
     }
 }

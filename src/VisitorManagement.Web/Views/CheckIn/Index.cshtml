@@ -19,7 +19,12 @@
                         <button type="button" class="btn btn-outline-secondary btn-sm" id="btn-lookup">ค้นหาผู้เคยมา</button>
                     </div>
                 </div>
+                <div class="d-flex align-items-center gap-2 mb-2">
+                    <span id="reader-badge" class="badge bg-secondary">กำลังตรวจเครื่องอ่าน...</span>
+                    <span id="reader-detail" class="small text-muted"></span>
+                </div>
                 <div id="id-alert" class="alert d-none"></div>
+                <div id="card-reader-config" class="d-none" data-url="@ViewBag.CardReaderUrl"></div>
                 <div class="row g-2">
                     <div class="col-md-4">
                         <label asp-for="NationalId" class="form-label"></label>
@@ -50,9 +55,13 @@
                         <label asp-for="CompanyName" class="form-label"></label>
                         <input asp-for="CompanyName" class="form-control" />
                     </div>
-                    <div class="col-12">
+                    <div class="col-md-8">
                         <label asp-for="Address" class="form-label"></label>
                         <input asp-for="Address" class="form-control" />
+                    </div>
+                    <div class="col-md-4">
+                        <label asp-for="DateOfBirth" class="form-label"></label>
+                        <input asp-for="DateOfBirth" class="form-control" type="date" />
                     </div>
                 </div>
             </div>

@@ -68,18 +68,4 @@ public class ApiController : Controller
         return Json(list);
     }
 
-    [HttpGet("demo/mock-id-card")]
-    [Authorize(Roles = AppRoles.FrontDesk)]
-    public IActionResult MockIdCard()
-    {
-        return Json(new
-        {
-            nationalId = "3101700123452",
-            title = "นาย",
-            firstName = "ทดลอง",
-            lastName = "อ่านบัตร",
-            address = "99 ถนนตัวอย่าง เขตคลองเตย กรุงเทพฯ",
-            dateOfBirth = "1988-05-12"
-        });
-    }
 }
