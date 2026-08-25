@@ -2,14 +2,21 @@
 @{
     Layout = null;
     var company = (CompanyProfile)ViewBag.Company;
-    var qr = ViewBag.Qr as string;
+    var barcode = ViewBag.BarcodeSvg as string ?? "";
     var autoPrint = ViewBag.AutoPrint as bool? == true;
+    var checkInAt = Model.CheckInAt ?? Model.CreatedAt;
+    var purpose = Model.VisitPurpose.Name;
+    if (!string.IsNullOrWhiteSpace(Model.PurposeDetail))
+    {
+        purpose += " — " + Model.PurposeDetail;
+    }
+    var companyName = string.IsNullOrWhiteSpace(Model.CompanyName) ? Model.Visitor.CompanyName : Model.CompanyName;
 }
 <!DOCTYPE html>
 <html lang="th">
 <head>
     <meta charset="utf-8" />
-    <title>บัตร @Model.VisitNumber</title>
+    <title>บัตร Visitor @Model.VisitNumber</title>
     <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;600;700&display=swap" rel="stylesheet">
     <style>
         @@page { size: 80mm auto; margin: 0; }
@@ -18,65 +25,95 @@
             font-family: "IBM Plex Sans Thai", sans-serif;
             width: 80mm;
             margin: 0 auto;
-            padding: 4mm;
+            padding: 3mm;
             color: #111;
         }
-        .badge-wrap { border: 2px solid #111; }
-        .head {
-            background: @(Model.VisitorType.Color);
+        .toolbar { text-align: center; margin-bottom: 8px; display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; }
+        .toolbar a, .toolbar button {
+            font-family: inherit;
+            font-size: 13px;
+            padding: 6px 10px;
+            border: 1px solid #1a56a0;
+            background: #1a56a0;
             color: #fff;
-            text-align: center;
-            padding: 6px 4px 4px;
-            font-weight: 700;
-            letter-spacing: .08em;
+            border-radius: 4px;
+            text-decoration: none;
+            cursor: pointer;
         }
-        .company { font-size: 11px; font-weight: 600; }
-        .label { font-size: 18px; }
-        .body { padding: 8px; }
-        .row { display: flex; gap: 6px; }
-        .photo { width: 28mm; height: 34mm; object-fit: cover; background: #eee; border: 1px solid #ccc; }
-        .qr { width: 28mm; height: 28mm; }
-        .meta { font-size: 12px; line-height: 1.35; }
-        .num { font-size: 14px; font-weight: 700; }
-        .foot { font-size: 10px; text-align: center; border-top: 1px dashed #111; padding: 6px; }
-        .toolbar { text-align: center; margin-bottom: 8px; }
-        @@media print { .toolbar { display: none; } body { width: 80mm; } }
+        .toolbar a.secondary { background: #fff; color: #1a56a0; }
+        .badge {
+            border: 2px solid #111;
+            padding: 6px 8px 10px;
+        }
+        .head {
+            text-align: center;
+            border-bottom: 1px solid #111;
+            padding-bottom: 4px;
+            margin-bottom: 6px;
+        }
+        .head .company { font-size: 11px; font-weight: 600; line-height: 1.3; }
+        .head .title { font-size: 16px; font-weight: 700; }
+        .barcode { text-align: center; margin: 4px 0 8px; }
+        .barcode svg { width: 100%; height: 46px; }
+        .row {
+            display: flex;
+            gap: 6px;
+            font-size: 12px;
+            line-height: 1.35;
+            margin: 4px 0;
+            align-items: flex-end;
+        }
+        .lbl { flex: 0 0 28mm; font-weight: 600; }
+        .val {
+            flex: 1;
+            border-bottom: 1px dotted #111;
+            min-height: 16px;
+            padding-bottom: 1px;
+        }
+        .signs { margin-top: 10px; }
+        .sign {
+            margin-top: 10px;
+            text-align: center;
+            font-size: 11px;
+        }
+        .sign .line {
+            border-bottom: 1px solid #111;
+            height: 22px;
+            margin: 0 8px 3px;
+        }
+        @@media print {
+            .toolbar { display: none; }
+            body { width: 80mm; padding: 2mm; }
+        }
     </style>
 </head>
 <body>
     <div class="toolbar">
-        <button onclick="window.print()">พิมพ์บัตร (Thermal 80mm)</button>
-        <a href="/Visits/Details/@Model.Id">กลับ</a>
+        <button type="button" onclick="window.print()">พิมพ์บัตร / พิมพ์ซ้ำ</button>
+        <a class="secondary" href="/Visits/Details/@Model.Id">กลับ</a>
     </div>
-    <div class="badge-wrap">
+    <div class="badge">
         <div class="head">
             <div class="company">@company.Name</div>
-            <div class="label">@Model.VisitorType.BadgeLabel</div>
+            <div class="title">บัตรผู้มาติดต่อ</div>
         </div>
-        <div class="body">
-            <div class="num">@Model.VisitNumber</div>
-            <div class="row">
-                @if (!string.IsNullOrEmpty(Model.PhotoPath))
-                {
-                    <img class="photo" src="@Model.PhotoPath" alt="photo" />
-                }
-                else
-                {
-                    <div class="photo"></div>
-                }
-                <div class="meta">
-                    <strong>@Model.Visitor.FullName</strong><br />
-                    @(Model.CompanyName ?? "-")<br />
-                    มาหา: @Model.HostEmployee.FullName<br />
-                    เข้า: @Model.CheckInAt?.ToString("dd/MM/yy HH:mm")<br />
-                    ถึง: @Model.ExpectedCheckoutAt?.ToString("HH:mm")
-                </div>
+        <div class="barcode">@Html.Raw(barcode)</div>
+        <div class="row"><span class="lbl">เลขที่</span><span class="val">@Model.VisitNumber</span></div>
+        <div class="row"><span class="lbl">วันที่เวลาเข้า</span><span class="val">@checkInAt.ToString("dd/MM/yyyy HH:mm")</span></div>
+        <div class="row"><span class="lbl">ชื่อผู้มาติดต่อ</span><span class="val">@Model.Visitor.FullName</span></div>
+        <div class="row"><span class="lbl">หน่วยงาน</span><span class="val">@(string.IsNullOrWhiteSpace(companyName) ? " " : companyName)</span></div>
+        <div class="row"><span class="lbl">วัตถุประสงค์</span><span class="val">@purpose</span></div>
+        <div class="row"><span class="lbl">ผู้ต้องการพบ</span><span class="val">@Model.HostEmployee.FullName</span></div>
+        <div class="signs">
+            <div class="sign">
+                <div class="line"></div>
+                <div>ลงชื่อ ผู้รับการติดต่อ</div>
             </div>
-            <div style="text-align:center;margin-top:6px">
-                <img class="qr" src="@qr" alt="QR" />
+            <div class="sign">
+                <div class="line"></div>
+                <div>ลงชื่อ (เจ้าหน้าที่ ร.ป.ภ.)</div>
             </div>
         </div>
-        <div class="foot">@company.BadgeFooter</div>
     </div>
     @if (autoPrint)
     {

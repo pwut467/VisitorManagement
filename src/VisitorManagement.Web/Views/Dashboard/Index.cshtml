@@ -53,7 +53,10 @@
                             <td>@v.Visitor.FullName<br /><span class="small text-muted">@v.CompanyName</span></td>
                             <td>@v.HostEmployee.FullName</td>
                             <td>@v.CheckInAt?.ToString("HH:mm")</td>
-                            <td><a class="btn btn-sm btn-outline-primary" asp-controller="Visits" asp-action="Details" asp-route-id="@v.Id">รายละเอียด</a></td>
+                            <td class="text-nowrap">
+                                <a class="btn btn-sm btn-outline-primary" asp-controller="Visits" asp-action="Details" asp-route-id="@v.Id">รายละเอียด</a>
+                                <a class="btn btn-sm btn-outline-secondary" asp-controller="Visits" asp-action="Badge" asp-route-id="@v.Id">พิมพ์ซ้ำ</a>
+                            </td>
                         </tr>
                     }
                     </tbody>

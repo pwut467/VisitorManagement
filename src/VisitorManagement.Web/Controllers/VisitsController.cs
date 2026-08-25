@@ -116,7 +116,7 @@ public class VisitsController : Controller
         visit.BadgePrintedAt = TimeHelper.Now;
         await _db.SaveChangesAsync();
 
-        ViewBag.Qr = _qr.DataUrl("VISIT|" + visit.VisitCode, 6);
+        ViewBag.BarcodeSvg = Code128Barcode.Svg(visit.VisitNumber);
         ViewBag.Company = await _db.CompanyProfiles.FirstAsync();
         ViewBag.AutoPrint = autoprint;
         return View(visit);

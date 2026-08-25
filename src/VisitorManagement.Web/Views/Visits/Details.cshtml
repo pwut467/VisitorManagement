@@ -43,7 +43,7 @@
                 {
                     <a class="btn btn-teal" asp-controller="CheckIn" asp-action="Index" asp-route-visitId="@Model.Id">ทำ Check-in</a>
                 }
-                <a class="btn btn-outline-primary" asp-action="Badge" asp-route-id="@Model.Id">พิมพ์บัตร Visitor</a>
+                <a class="btn btn-outline-primary" asp-action="Badge" asp-route-id="@Model.Id">@(Model.BadgePrintedAt is null ? "พิมพ์บัตร Visitor" : "พิมพ์บัตรซ้ำ")</a>
             </div>
             @if (Model.Status is VisitStatus.CheckedIn or VisitStatus.PreRegistered)
             {

@@ -61,7 +61,10 @@
                     <td>@v.CheckInAt?.ToString("dd/MM HH:mm")</td>
                     <td>@v.CheckOutAt?.ToString("dd/MM HH:mm")</td>
                     <td><span class="badge bg-secondary">@v.Status</span></td>
-                    <td><a asp-action="Details" asp-route-id="@v.Id">เปิด</a></td>
+                    <td class="text-nowrap">
+                        <a asp-action="Details" asp-route-id="@v.Id">เปิด</a>
+                        <a asp-action="Badge" asp-route-id="@v.Id">พิมพ์ซ้ำ</a>
+                    </td>
                 </tr>
             }
             </tbody>
