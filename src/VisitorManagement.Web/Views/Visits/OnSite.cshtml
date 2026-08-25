@@ -11,7 +11,7 @@
         <table class="table table-striped table-hover align-middle mb-0">
             <thead>
             <tr>
-                <th class="col-seq">ลำดับ</th>
+                <th class="col-seq text-center">ลำดับ</th>
                 <th>รหัสบัตร</th>
                 <th>ผู้มาติดต่อ</th>
                 <th>ทะเบียนรถ</th>
@@ -26,7 +26,7 @@
             @foreach (var v in Model)
             {
                 <tr class="@(v.IsOverstay(now) ? "overstay" : "")">
-                    <td class="col-seq">@(++seq)</td>
+                    <td class="col-seq text-center">@(++seq)</td>
                     <td class="fw-semibold">@v.VisitNumber</td>
                     <td>
                         @v.Visitor.FullName

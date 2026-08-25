@@ -276,9 +276,14 @@ body {
   font-weight: 600;
 }
 
-.col-seq {
-  text-align: center;
+.col-seq,
+table.table thead th.col-seq,
+table.table tbody td.col-seq,
+table.dataTable thead th.col-seq,
+table.dataTable tbody td.col-seq {
+  text-align: center !important;
   width: 4.5rem;
+  min-width: 4.5rem;
   white-space: nowrap;
 }
 
