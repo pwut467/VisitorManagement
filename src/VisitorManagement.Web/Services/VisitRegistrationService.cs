@@ -119,7 +119,7 @@ public class VisitRegistrationService : IVisitRegistrationService
                 VisitNumber = await _numbers.NextAsync(now, cancellationToken),
                 VisitCode = Guid.NewGuid().ToString("N"),
                 CreatedAt = now,
-                RegisteredByUserId = userId
+                RegisteredByUserId = await ResolveExistingUserIdAsync(userId, cancellationToken)
             };
             _db.Visits.Add(visit);
         }
@@ -241,6 +241,17 @@ public class VisitRegistrationService : IVisitRegistrationService
         return string.Join(' ', value.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries));
     }
 
+    private async Task<string?> ResolveExistingUserIdAsync(string? userId, CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(userId))
+        {
+            return null;
+        }
+
+        var exists = await _db.Users.AsNoTracking().AnyAsync(u => u.Id == userId, cancellationToken);
+        return exists ? userId : null;
+    }
+
     public async Task<VisitOperationResult> CheckOutAsync(
         string visitCodeOrNumber,
         int? gateOutId,
@@ -276,7 +287,7 @@ public class VisitRegistrationService : IVisitRegistrationService
         visit.Status = VisitStatus.CheckedOut;
         visit.CheckOutAt = TimeHelper.Now;
         visit.GateOutId = gateOutId;
-        visit.CheckedOutByUserId = userId;
+        visit.CheckedOutByUserId = await ResolveExistingUserIdAsync(userId, cancellationToken);
         if (!string.IsNullOrWhiteSpace(notes))
         {
             visit.Notes = string.IsNullOrWhiteSpace(visit.Notes) ? notes : visit.Notes + " | " + notes;

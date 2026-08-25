@@ -7,6 +7,8 @@ namespace VisitorManagement.Web.Data;
 
 public static class DbSeeder
 {
+    private static readonly string[] OfficialUserNames = ["SKAdmin", "9641"];
+
     public static async Task SeedAsync(IServiceProvider services)
     {
         using var scope = services.CreateScope();
@@ -125,28 +127,46 @@ public static class DbSeeder
     private static async Task ResetUsersAsync(AppDbContext db, UserManager<ApplicationUser> userManager)
     {
         const string defaultPassword = "123456";
+        var keepNames = new HashSet<string>(OfficialUserNames, StringComparer.OrdinalIgnoreCase);
+        var leftover = (await userManager.Users.ToListAsync())
+            .Where(user => user.UserName is null || !keepNames.Contains(user.UserName))
+            .ToList();
 
-        foreach (var emp in await db.Employees.Where(e => e.UserId != null).ToListAsync())
+        if (leftover.Count > 0)
         {
-            emp.UserId = null;
-        }
-
-        foreach (var visit in await db.Visits
-                     .Where(v => v.RegisteredByUserId != null || v.CheckedOutByUserId != null)
-                     .ToListAsync())
-        {
-            visit.RegisteredByUserId = null;
-            visit.CheckedOutByUserId = null;
-        }
-
-        await db.SaveChangesAsync();
-
-        foreach (var user in userManager.Users.ToList())
-        {
-            var result = await userManager.DeleteAsync(user);
-            if (!result.Succeeded)
+            var leftoverIds = leftover.Select(user => user.Id).ToHashSet();
+            foreach (var emp in await db.Employees.Where(e => e.UserId != null).ToListAsync())
             {
-                throw new InvalidOperationException(string.Join("; ", result.Errors.Select(e => e.Description)));
+                if (emp.UserId is not null && leftoverIds.Contains(emp.UserId))
+                {
+                    emp.UserId = null;
+                }
+            }
+
+            foreach (var visit in await db.Visits
+                         .Where(v => v.RegisteredByUserId != null || v.CheckedOutByUserId != null)
+                         .ToListAsync())
+            {
+                if (visit.RegisteredByUserId is not null && leftoverIds.Contains(visit.RegisteredByUserId))
+                {
+                    visit.RegisteredByUserId = null;
+                }
+
+                if (visit.CheckedOutByUserId is not null && leftoverIds.Contains(visit.CheckedOutByUserId))
+                {
+                    visit.CheckedOutByUserId = null;
+                }
+            }
+
+            await db.SaveChangesAsync();
+
+            foreach (var user in leftover)
+            {
+                var result = await userManager.DeleteAsync(user);
+                if (!result.Succeeded)
+                {
+                    throw new InvalidOperationException(string.Join("; ", result.Errors.Select(e => e.Description)));
+                }
             }
         }
 
@@ -195,13 +215,6 @@ public static class DbSeeder
         }
         else
         {
-            var token = await userManager.GeneratePasswordResetTokenAsync(user);
-            var reset = await userManager.ResetPasswordAsync(user, token, password);
-            if (!reset.Succeeded)
-            {
-                throw new InvalidOperationException(string.Join("; ", reset.Errors.Select(e => e.Description)));
-            }
-
             user.FullName = fullName;
             user.IsActive = true;
             await userManager.UpdateAsync(user);

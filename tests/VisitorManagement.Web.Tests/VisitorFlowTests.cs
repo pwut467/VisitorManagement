@@ -206,6 +206,43 @@ public class VisitRegistrationServiceTests
         Assert.Equal("นายเวิน บุษภาค", result.Visit!.HostEmployee.FullName);
     }
 
+    [Theory]
+    [InlineData("")]
+    [InlineData("stale-user-id")]
+    public async Task UnknownOrEmptyUserIdDoesNotBlockCheckIn(string userId)
+    {
+        var db = TestDb.Create();
+        await TestDb.SeedGraphAsync(db);
+        var svc = TestDb.CreateRegistration(db);
+        var result = await svc.RegisterAsync(TestDb.ValidCheckIn(db), userId);
+        Assert.True(result.Succeeded, result.Error);
+        Assert.Null(result.Visit!.RegisteredByUserId);
+    }
+
+    [Fact]
+    public async Task ExistingUserIdIsStoredOnCheckInAndCheckOut()
+    {
+        var db = TestDb.Create();
+        await TestDb.SeedGraphAsync(db);
+        db.Users.Add(new ApplicationUser
+        {
+            Id = "user-real",
+            UserName = "SKAdmin",
+            FullName = "ผู้ดูแลระบบ",
+            IsActive = true
+        });
+        await db.SaveChangesAsync();
+        var svc = TestDb.CreateRegistration(db);
+
+        var result = await svc.RegisterAsync(TestDb.ValidCheckIn(db), "user-real");
+        Assert.True(result.Succeeded, result.Error);
+        Assert.Equal("user-real", result.Visit!.RegisteredByUserId);
+
+        var outResult = await svc.CheckOutAsync(result.Visit.VisitCode, db.Gates.First().Id, "gone-user", null);
+        Assert.True(outResult.Succeeded, outResult.Error);
+        Assert.Null(outResult.Visit!.CheckedOutByUserId);
+    }
+
     [Fact]
     public async Task EmptyHostNameIsRejected()
     {
