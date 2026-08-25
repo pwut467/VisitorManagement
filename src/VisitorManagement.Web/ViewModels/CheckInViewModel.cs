@@ -33,11 +33,13 @@ public class CheckInViewModel
     public string? Address { get; set; }
 
     [Display(Name = "ประเภทผู้มาติดต่อ")]
-    [Required]
+    [Required(ErrorMessage = "กรุณาเลือกประเภทผู้มาติดต่อ")]
+    [Range(1, int.MaxValue, ErrorMessage = "กรุณาเลือกประเภทผู้มาติดต่อ")]
     public int VisitorTypeId { get; set; }
 
     [Display(Name = "วัตถุประสงค์")]
-    [Required]
+    [Required(ErrorMessage = "กรุณาเลือกวัตถุประสงค์")]
+    [Range(1, int.MaxValue, ErrorMessage = "กรุณาเลือกวัตถุประสงค์")]
     public int VisitPurposeId { get; set; }
 
     [Display(Name = "รายละเอียดเรื่องที่มา")]
@@ -53,10 +55,14 @@ public class CheckInViewModel
     public int ExpectedHours { get; set; } = 2;
 
     [Display(Name = "ทะเบียนรถ")]
-    public string? VehiclePlate { get; set; }
+    [Required(ErrorMessage = "กรุณากรอกทะเบียนรถ")]
+    [MaxLength(20)]
+    public string VehiclePlate { get; set; } = string.Empty;
 
     [Display(Name = "ประเภทรถ")]
-    public string? VehicleType { get; set; }
+    [Required(ErrorMessage = "กรุณาเลือกประเภทรถ")]
+    [MaxLength(40)]
+    public string VehicleType { get; set; } = string.Empty;
 
     [Display(Name = "จำนวนผู้ติดตาม")]
     [Range(0, 50)]

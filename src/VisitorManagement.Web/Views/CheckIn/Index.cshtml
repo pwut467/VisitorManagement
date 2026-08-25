@@ -25,28 +25,33 @@
                     <span id="reader-detail" class="small text-muted"></span>
                 </div>
                 <div id="id-alert" class="alert d-none"></div>
+                <div asp-validation-summary="ModelOnly" class="text-danger mb-2"></div>
                 <div id="card-reader-config" class="d-none" data-url="@ViewBag.CardReaderUrl"></div>
                 <div class="row g-2">
                     <div class="col-md-4">
-                        <label asp-for="NationalId" class="form-label"></label>
+                        <label asp-for="NationalId" class="form-label"></label> <span class="text-danger">*</span>
                         <input type="hidden" asp-for="NationalId" />
-                        <input id="NationalIdDisplay" class="form-control font-monospace" maxlength="17" inputmode="numeric" autocomplete="off" spellcheck="false" value="@ThaiNationalId.Mask(Model.NationalId)" />
+                        <input id="NationalIdDisplay" class="form-control font-monospace" maxlength="17" inputmode="numeric" autocomplete="off" spellcheck="false" required value="@ThaiNationalId.Mask(Model.NationalId)" />
+                        <span asp-validation-for="NationalId" class="text-danger"></span>
                     </div>
                     <div class="col-md-2">
                         <label asp-for="Title" class="form-label"></label>
                         <select asp-for="Title" asp-items="Model.Titles" class="form-select"></select>
                     </div>
                     <div class="col-md-3">
-                        <label asp-for="FirstName" class="form-label"></label>
+                        <label asp-for="FirstName" class="form-label"></label> <span class="text-danger">*</span>
                         <input asp-for="FirstName" class="form-control" />
+                        <span asp-validation-for="FirstName" class="text-danger"></span>
                     </div>
                     <div class="col-md-3">
-                        <label asp-for="LastName" class="form-label"></label>
+                        <label asp-for="LastName" class="form-label"></label> <span class="text-danger">*</span>
                         <input asp-for="LastName" class="form-control" />
+                        <span asp-validation-for="LastName" class="text-danger"></span>
                     </div>
                     <div class="col-md-6">
                         <label asp-for="Phone" class="form-label"></label>
                         <input asp-for="Phone" class="form-control" />
+                        <span asp-validation-for="Phone" class="text-danger"></span>
                     </div>
                     <div class="col-md-6">
                         <label asp-for="CompanyName" class="form-label"></label>
@@ -60,36 +65,37 @@
                 <h2 class="h5">รายละเอียดการเข้าพบ</h2>
                 <div class="row g-2">
                     <div class="col-md-4">
-                        <label asp-for="VisitorTypeId" class="form-label"></label>
+                        <label asp-for="VisitorTypeId" class="form-label"></label> <span class="text-danger">*</span>
                         <select asp-for="VisitorTypeId" asp-items="Model.VisitorTypes" class="form-select"></select>
+                        <span asp-validation-for="VisitorTypeId" class="text-danger"></span>
                     </div>
                     <div class="col-md-4">
-                        <label asp-for="VisitPurposeId" class="form-label"></label>
+                        <label asp-for="VisitPurposeId" class="form-label"></label> <span class="text-danger">*</span>
                         <select asp-for="VisitPurposeId" asp-items="Model.VisitPurposes" class="form-select"></select>
+                        <span asp-validation-for="VisitPurposeId" class="text-danger"></span>
                     </div>
                     <div class="col-md-4">
-                        <label asp-for="HostName" class="form-label"></label>
+                        <label asp-for="HostName" class="form-label"></label> <span class="text-danger">*</span>
                         <input asp-for="HostName" class="form-control" autocomplete="off" placeholder="พิมพ์ชื่อ-นามสกุล" />
+                        <span asp-validation-for="HostName" class="text-danger"></span>
                     </div>
                     <div class="col-12">
                         <label asp-for="PurposeDetail" class="form-label"></label>
                         <input asp-for="PurposeDetail" class="form-control" />
                     </div>
                     <div class="col-md-4">
-                        <label asp-for="VehicleType" class="form-label"></label>
+                        <label asp-for="VehicleType" class="form-label"></label> <span class="text-danger">*</span>
                         <select asp-for="VehicleType" asp-items="Model.VehicleTypes" class="form-select"></select>
+                        <span asp-validation-for="VehicleType" class="text-danger"></span>
                     </div>
                     <div class="col-md-4">
-                        <label asp-for="VehiclePlate" class="form-label"></label>
+                        <label asp-for="VehiclePlate" class="form-label"></label> <span class="text-danger">*</span>
                         <input asp-for="VehiclePlate" class="form-control" />
+                        <span asp-validation-for="VehiclePlate" class="text-danger"></span>
                     </div>
                     <div class="col-md-4">
                         <label asp-for="AccompanyingCount" class="form-label"></label>
                         <input asp-for="AccompanyingCount" class="form-control" type="number" min="0" />
-                    </div>
-                    <div class="col-12">
-                        <label asp-for="Notes" class="form-label"></label>
-                        <textarea asp-for="Notes" class="form-control" rows="2"></textarea>
                     </div>
                 </div>
             </div>

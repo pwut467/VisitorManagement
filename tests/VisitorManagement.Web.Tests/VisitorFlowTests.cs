@@ -255,6 +255,25 @@ public class VisitRegistrationServiceTests
         Assert.False(result.Succeeded);
         Assert.Contains("พนักงาน", result.Error);
     }
+
+    [Fact]
+    public async Task VehicleTypeAndPlateAreRequired()
+    {
+        var db = TestDb.Create();
+        await TestDb.SeedGraphAsync(db);
+        var svc = TestDb.CreateRegistration(db);
+        var missingType = TestDb.ValidCheckIn(db);
+        missingType.VehicleType = "  ";
+        var typeResult = await svc.RegisterAsync(missingType, "u1");
+        Assert.False(typeResult.Succeeded);
+        Assert.Contains("ประเภทรถ", typeResult.Error);
+
+        var missingPlate = TestDb.ValidCheckIn(db);
+        missingPlate.VehiclePlate = "";
+        var plateResult = await svc.RegisterAsync(missingPlate, "u1");
+        Assert.False(plateResult.Succeeded);
+        Assert.Contains("ทะเบียนรถ", plateResult.Error);
+    }
 }
 
 internal static class TestDb
@@ -299,6 +318,8 @@ internal static class TestDb
         HostName = db.Employees.First().FullName,
         GateId = db.Gates.First().Id,
         ExpectedHours = 2,
+        VehicleType = "รถยนต์",
+        VehiclePlate = "กข 1234",
         PdpaConsent = true,
         SubmitAction = "checkin"
     };

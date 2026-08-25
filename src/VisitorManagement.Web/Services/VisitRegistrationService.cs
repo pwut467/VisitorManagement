@@ -67,6 +67,31 @@ public class VisitRegistrationService : IVisitRegistrationService
             return VisitOperationResult.Fail("ต้องได้รับความยินยอม PDPA ก่อนลงทะเบียนเข้าพื้นที่");
         }
 
+        if (string.IsNullOrWhiteSpace(model.FirstName) || string.IsNullOrWhiteSpace(model.LastName))
+        {
+            return VisitOperationResult.Fail("กรุณากรอกชื่อและนามสกุล");
+        }
+
+        if (model.VisitorTypeId <= 0)
+        {
+            return VisitOperationResult.Fail("กรุณาเลือกประเภทผู้มาติดต่อ");
+        }
+
+        if (model.VisitPurposeId <= 0)
+        {
+            return VisitOperationResult.Fail("กรุณาเลือกวัตถุประสงค์");
+        }
+
+        if (string.IsNullOrWhiteSpace(model.VehicleType))
+        {
+            return VisitOperationResult.Fail("กรุณาเลือกประเภทรถ");
+        }
+
+        if (string.IsNullOrWhiteSpace(model.VehiclePlate))
+        {
+            return VisitOperationResult.Fail("กรุณากรอกทะเบียนรถ");
+        }
+
         var host = await ResolveHostEmployeeAsync(model.HostName, cancellationToken);
         if (host is null)
         {

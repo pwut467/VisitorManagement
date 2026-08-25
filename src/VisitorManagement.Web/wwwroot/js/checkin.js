@@ -247,6 +247,12 @@
   form.addEventListener('submit', () => {
     syncNationalIdFromDisplay();
   });
+  if (window.jQuery) {
+    const validator = window.jQuery('#checkin-form').data('validator');
+    if (validator) {
+      validator.settings.ignore = ':hidden:not(#NationalId)';
+    }
+  }
   document.getElementById('btn-checkin')?.addEventListener('click', () => {
     document.getElementById('SubmitAction').value = 'checkin';
   });

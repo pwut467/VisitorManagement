@@ -48,8 +48,8 @@ public class CheckInController : Controller
                 model.VisitPurposeId = visit.VisitPurposeId;
                 model.PurposeDetail = visit.PurposeDetail;
                 model.HostName = visit.HostEmployee.FullName;
-                model.VehiclePlate = visit.VehiclePlate;
-                model.VehicleType = visit.VehicleType;
+                model.VehiclePlate = visit.VehiclePlate ?? "";
+                model.VehicleType = visit.VehicleType ?? "";
                 model.AccompanyingCount = visit.AccompanyingCount;
                 model.Notes = visit.Notes;
             }
@@ -120,16 +120,18 @@ public class CheckInController : Controller
 
         model.Titles = new[] { "นาย", "นาง", "นางสาว", "อื่นๆ" }
             .Select(t => new SelectListItem(t, t, t == model.Title));
-        model.VisitorTypes = await _db.VisitorTypes.Where(x => x.IsActive)
-            .OrderBy(x => x.Name)
-            .Select(x => new SelectListItem { Value = x.Id.ToString(), Text = x.Name, Selected = x.Id == model.VisitorTypeId })
-            .ToListAsync();
-        model.VisitPurposes = await _db.VisitPurposes.Where(x => x.IsActive)
-            .OrderBy(x => x.Name)
-            .Select(x => new SelectListItem { Value = x.Id.ToString(), Text = x.Name, Selected = x.Id == model.VisitPurposeId })
-            .ToListAsync();
-        model.VehicleTypes = new[] { "", "รถยนต์", "รถกระบะ", "รถจักรยานยนต์", "รถตู้","รถ 6ล้อ", "รถบรรทุก 10 ล้อ","รถพ่วง" }
-            .Select(t => new SelectListItem(string.IsNullOrEmpty(t) ? "— ไม่มีรถ —" : t, t, t == (model.VehicleType ?? "")));
+        model.VisitorTypes = new[] { new SelectListItem("— เลือก —", "") }
+            .Concat(await _db.VisitorTypes.Where(x => x.IsActive)
+                .OrderBy(x => x.Name)
+                .Select(x => new SelectListItem { Value = x.Id.ToString(), Text = x.Name, Selected = x.Id == model.VisitorTypeId })
+                .ToListAsync());
+        model.VisitPurposes = new[] { new SelectListItem("— เลือก —", "") }
+            .Concat(await _db.VisitPurposes.Where(x => x.IsActive)
+                .OrderBy(x => x.Name)
+                .Select(x => new SelectListItem { Value = x.Id.ToString(), Text = x.Name, Selected = x.Id == model.VisitPurposeId })
+                .ToListAsync());
+        model.VehicleTypes = new[] { "", "รถยนต์", "รถกระบะ", "รถจักรยานยนต์", "รถตู้", "รถ 6ล้อ", "รถบรรทุก 10 ล้อ", "รถพ่วง" }
+            .Select(t => new SelectListItem(string.IsNullOrEmpty(t) ? "— เลือก —" : t, t, t == (model.VehicleType ?? "")));
         ViewBag.CardReaderUrl = _config["CardReader:AgentUrl"] ?? "http://127.0.0.1:5001";
     }
 }
