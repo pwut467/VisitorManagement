@@ -134,6 +134,12 @@ public class VisitRegistrationServiceTests
     }
 
     [Fact]
+    public void PdpaConsentDefaultsToChecked()
+    {
+        Assert.True(new CheckInViewModel().PdpaConsent);
+    }
+
+    [Fact]
     public async Task RejectsInvalidNationalId()
     {
         var db = TestDb.Create();

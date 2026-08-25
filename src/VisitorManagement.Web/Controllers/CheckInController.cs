@@ -52,6 +52,7 @@ public class CheckInController : Controller
                 model.VehicleType = visit.VehicleType ?? "";
                 model.AccompanyingCount = visit.AccompanyingCount;
                 model.Notes = visit.Notes;
+                model.PdpaConsent = true;
             }
         }
 

@@ -69,7 +69,7 @@ public class CheckInViewModel
     public string? Notes { get; set; }
 
     [Display(Name = "ยินยอมให้เก็บข้อมูลตาม PDPA")]
-    public bool PdpaConsent { get; set; }
+    public bool PdpaConsent { get; set; } = true;
 
     public string? PhotoDataUrl { get; set; }
 

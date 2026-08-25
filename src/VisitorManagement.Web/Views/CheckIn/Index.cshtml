@@ -115,7 +115,9 @@
                 <div class="form-check mb-3">
                     <input asp-for="PdpaConsent" class="form-check-input" />
                     <label asp-for="PdpaConsent" class="form-check-label">
-                        ผู้มาติดต่อยินยอมให้เก็บข้อมูลส่วนบุคคลตาม <a asp-controller="Home" asp-action="Privacy" target="_blank">PDPA</a> เพื่อความปลอดภัยของสถานประกอบการ
+                        ผู้มาติดต่อยินยอมให้เก็บข้อมูลส่วนบุคคลตาม
+                        <a href="#pdpaModal" id="pdpa-policy-link">PDPA</a>
+                        เพื่อความปลอดภัยของสถานประกอบการ
                     </label>
                 </div>
                 @{
@@ -126,6 +128,22 @@
         </div>
     </div>
 </form>
+<div class="modal fade" id="pdpaModal" tabindex="-1" aria-labelledby="pdpaModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title h5" id="pdpaModalLabel">นโยบายการเก็บข้อมูลผู้มาติดต่อ (PDPA)</h2>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="ปิด"></button>
+            </div>
+            <div class="modal-body">
+                <partial name="_PdpaPolicy" />
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-teal" data-bs-dismiss="modal">ปิด</button>
+            </div>
+        </div>
+    </div>
+</div>
 @if (!string.IsNullOrEmpty(printBadgeUrl))
 {
     <iframe id="badge-print-frame" title="พิมพ์บัตรผู้มาติดต่อ" src="@printBadgeUrl"
@@ -135,4 +153,11 @@
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
     <script src="~/js/checkin.js" asp-append-version="true"></script>
+    <script>
+        document.getElementById('pdpa-policy-link')?.addEventListener('click', function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+            bootstrap.Modal.getOrCreateInstance(document.getElementById('pdpaModal')).show();
+        });
+    </script>
 }
