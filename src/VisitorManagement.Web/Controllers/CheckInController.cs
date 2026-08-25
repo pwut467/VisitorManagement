@@ -125,7 +125,7 @@ public class CheckInController : Controller
                 Selected = x.Id == model.HostEmployeeId
             })
             .ToListAsync();
-        model.VehicleTypes = new[] { "", "รถยนต์", "รถกระบะ", "รถจักรยานยนต์", "รถตู้", "รถบรรทุก" }
+        model.VehicleTypes = new[] { "", "รถยนต์", "รถกระบะ", "รถจักรยานยนต์", "รถตู้","รถ 6ล้อ", "รถบรรทุก 10 ล้อ","รถพ่วง" }
             .Select(t => new SelectListItem(string.IsNullOrEmpty(t) ? "— ไม่มีรถ —" : t, t, t == (model.VehicleType ?? "")));
         ViewBag.CardReaderUrl = _config["CardReader:AgentUrl"] ?? "http://127.0.0.1:5001";
     }
