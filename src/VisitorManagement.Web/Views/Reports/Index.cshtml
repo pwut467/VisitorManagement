@@ -52,8 +52,9 @@
         <tbody>
         @foreach (var v in Model)
         {
-            <tr>
-                <td class="col-seq text-center">@(++seq)</td>
+            var stripe = (++seq % 2 == 1) ? "row-odd" : "row-even";
+            <tr class="@stripe">
+                <td class="col-seq text-center">@seq</td>
                 <td class="text-nowrap">@v.VisitNumber</td>
                 <td>@v.Visitor.FullName</td>
                 <td class="text-nowrap">@(string.IsNullOrWhiteSpace(v.VehiclePlate) ? "—" : v.VehiclePlate)</td>

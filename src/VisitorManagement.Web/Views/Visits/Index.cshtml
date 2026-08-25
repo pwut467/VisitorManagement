@@ -54,8 +54,9 @@
             <tbody>
             @foreach (var v in Model)
             {
-                <tr>
-                    <td class="col-seq text-center">@(++seq)</td>
+                var stripe = (++seq % 2 == 1) ? "row-odd" : "row-even";
+                <tr class="@stripe">
+                    <td class="col-seq text-center">@seq</td>
                     <td class="fw-semibold text-nowrap">
                         <a asp-action="Details" asp-route-id="@v.Id" asp-route-returnUrl="@here">@v.VisitNumber</a>
                     </td>

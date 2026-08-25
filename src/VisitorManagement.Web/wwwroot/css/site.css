@@ -287,34 +287,37 @@ table.dataTable tbody td.col-seq {
   white-space: nowrap;
 }
 
-.table-striped > tbody > tr:nth-of-type(odd) > * {
-  --bs-table-accent-bg: #e8eef5;
-  background-color: #e8eef5;
-}
-
+.table-striped > tbody > tr:nth-of-type(odd) > *,
+.table-striped > tbody > tr.row-odd > *,
 table.dataTable.table-striped > tbody > tr:nth-of-type(odd) > *,
 table.dataTable > tbody > tr.odd > * {
-  --bs-table-accent-bg: #e8eef5;
-  background-color: #e8eef5;
-  box-shadow: inset 0 0 0 9999px #e8eef5;
+  --bs-table-accent-bg: #dbe4f0;
+  background-color: #dbe4f0 !important;
+  box-shadow: inset 0 0 0 9999px #dbe4f0;
 }
 
+.table-striped > tbody > tr:nth-of-type(even) > *,
+.table-striped > tbody > tr.row-even > *,
 table.dataTable.table-striped > tbody > tr:nth-of-type(even) > *,
 table.dataTable > tbody > tr.even > * {
-  background-color: #fff;
+  --bs-table-accent-bg: transparent;
+  background-color: #fff !important;
   box-shadow: none;
 }
 
 .table-hover > tbody > tr:hover > *,
 table.dataTable.table-hover > tbody > tr:hover > * {
   --bs-table-accent-bg: #ccfbf1;
-  background-color: #ccfbf1;
+  background-color: #ccfbf1 !important;
   box-shadow: inset 0 0 0 9999px #ccfbf1;
 }
 
+tr.overstay {
+  box-shadow: inset 4px 0 0 #e11d48;
+}
+
 tr.overstay > * {
-  background-color: #fff1f2 !important;
-  box-shadow: inset 0 0 0 9999px #fff1f2 !important;
+  /* keep striped backgrounds; only mark overstay with the left bar */
 }
 
 .dataTables_wrapper .dataTables_length,
@@ -340,7 +343,7 @@ tr.overstay > * {
 }
 
 .overstay {
-  background: #fff1f2 !important;
+  /* left bar is applied via tr.overstay box-shadow */
 }
 
 .toast-container {

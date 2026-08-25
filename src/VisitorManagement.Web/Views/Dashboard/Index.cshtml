@@ -57,8 +57,9 @@
                     }
                     @foreach (var v in Model.OnSite)
                     {
-                        <tr>
-                            <td class="col-seq text-center">@(++seq)</td>
+                        var stripe = (++seq % 2 == 1) ? "row-odd" : "row-even";
+                        <tr class="@stripe">
+                            <td class="col-seq text-center">@seq</td>
                             <td class="fw-semibold text-nowrap">@v.VisitNumber</td>
                             <td>@v.Visitor.FullName<br /><span class="small text-muted">@v.CompanyName</span></td>
                             <td class="text-nowrap">@(string.IsNullOrWhiteSpace(v.VehiclePlate) ? "—" : v.VehiclePlate)</td>
