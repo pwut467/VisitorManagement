@@ -43,26 +43,15 @@
                         <label asp-for="LastName" class="form-label"></label>
                         <input asp-for="LastName" class="form-control" />
                     </div>
-                    <div class="col-md-4">
+                    <div class="col-md-6">
                         <label asp-for="Phone" class="form-label"></label>
                         <input asp-for="Phone" class="form-control" />
                     </div>
-                    <div class="col-md-4">
-                        <label asp-for="Email" class="form-label"></label>
-                        <input asp-for="Email" class="form-control" />
-                    </div>
-                    <div class="col-md-4">
+                    <div class="col-md-6">
                         <label asp-for="CompanyName" class="form-label"></label>
                         <input asp-for="CompanyName" class="form-control" />
                     </div>
-                    <div class="col-md-8">
-                        <label asp-for="Address" class="form-label"></label>
-                        <input asp-for="Address" class="form-control" />
-                    </div>
-                    <div class="col-md-4">
-                        <label asp-for="DateOfBirth" class="form-label"></label>
-                        <input asp-for="DateOfBirth" class="form-control" type="date" />
-                    </div>
+                    <input type="hidden" asp-for="Address" />
                 </div>
             </div>
 
@@ -86,18 +75,6 @@
                         <input asp-for="PurposeDetail" class="form-control" />
                     </div>
                     <div class="col-md-4">
-                        <label asp-for="GateId" class="form-label"></label>
-                        <select asp-for="GateId" asp-items="Model.Gates" class="form-select"></select>
-                    </div>
-                    <div class="col-md-4">
-                        <label asp-for="ExpectedHours" class="form-label"></label>
-                        <input asp-for="ExpectedHours" class="form-control" type="number" min="1" max="24" />
-                    </div>
-                    <div class="col-md-4">
-                        <label asp-for="AccessArea" class="form-label"></label>
-                        <input asp-for="AccessArea" class="form-control" placeholder="เช่น อาคาร A ชั้น 3" />
-                    </div>
-                    <div class="col-md-4">
                         <label asp-for="VehicleType" class="form-label"></label>
                         <select asp-for="VehicleType" asp-items="Model.VehicleTypes" class="form-select"></select>
                     </div>
@@ -108,20 +85,6 @@
                     <div class="col-md-4">
                         <label asp-for="AccompanyingCount" class="form-label"></label>
                         <input asp-for="AccompanyingCount" class="form-control" type="number" min="0" />
-                    </div>
-                    <div class="col-md-6">
-                        <label asp-for="AccompanyingNames" class="form-label"></label>
-                        <input asp-for="AccompanyingNames" class="form-control" />
-                    </div>
-                    <div class="col-md-6">
-                        <label asp-for="ItemsBrought" class="form-label"></label>
-                        <input asp-for="ItemsBrought" class="form-control" placeholder="โน้ตบุ๊ก, เครื่องมือ, เอกสาร" />
-                    </div>
-                    <div class="col-12">
-                        <div class="form-check">
-                            <input asp-for="RequiresEscort" class="form-check-input" />
-                            <label asp-for="RequiresEscort" class="form-check-label"></label>
-                        </div>
                     </div>
                     <div class="col-12">
                         <label asp-for="Notes" class="form-label"></label>

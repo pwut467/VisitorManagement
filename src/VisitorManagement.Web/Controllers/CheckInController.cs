@@ -41,22 +41,15 @@ public class CheckInController : Controller
                 model.FirstName = visit.Visitor.FirstName;
                 model.LastName = visit.Visitor.LastName;
                 model.Phone = visit.Visitor.Phone ?? "";
-                model.Email = visit.Visitor.Email;
                 model.CompanyName = visit.CompanyName ?? visit.Visitor.CompanyName;
                 model.Address = visit.Visitor.Address;
-                model.DateOfBirth = visit.Visitor.DateOfBirth?.ToString("yyyy-MM-dd");
                 model.VisitorTypeId = visit.VisitorTypeId;
                 model.VisitPurposeId = visit.VisitPurposeId;
                 model.PurposeDetail = visit.PurposeDetail;
                 model.HostEmployeeId = visit.HostEmployeeId;
-                model.GateId = visit.GateInId ?? 0;
                 model.VehiclePlate = visit.VehiclePlate;
                 model.VehicleType = visit.VehicleType;
-                model.ItemsBrought = visit.ItemsBrought;
                 model.AccompanyingCount = visit.AccompanyingCount;
-                model.AccompanyingNames = visit.AccompanyingNames;
-                model.RequiresEscort = visit.RequiresEscort;
-                model.AccessArea = visit.AccessArea;
                 model.Notes = visit.Notes;
             }
         }
@@ -131,10 +124,6 @@ public class CheckInController : Controller
                 Text = $"{x.FullName} ({x.Department.Name})",
                 Selected = x.Id == model.HostEmployeeId
             })
-            .ToListAsync();
-        model.Gates = await _db.Gates.Where(x => x.IsActive)
-            .OrderBy(x => x.Name)
-            .Select(x => new SelectListItem { Value = x.Id.ToString(), Text = x.Name, Selected = x.Id == model.GateId })
             .ToListAsync();
         model.VehicleTypes = new[] { "", "รถยนต์", "รถกระบะ", "รถจักรยานยนต์", "รถตู้", "รถบรรทุก" }
             .Select(t => new SelectListItem(string.IsNullOrEmpty(t) ? "— ไม่มีรถ —" : t, t, t == (model.VehicleType ?? "")));

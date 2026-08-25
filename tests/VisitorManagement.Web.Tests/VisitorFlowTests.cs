@@ -74,9 +74,15 @@ public class VisitRegistrationServiceTests
         await TestDb.SeedGraphAsync(db);
         var svc = TestDb.CreateRegistration(db);
 
-        var result = await svc.RegisterAsync(TestDb.ValidCheckIn(db), "user-1");
+        var model = TestDb.ValidCheckIn(db);
+        model.Address = "99 ถนนทดสอบ เขตคลองเตย กรุงเทพฯ";
+        var result = await svc.RegisterAsync(model, "user-1");
         Assert.True(result.Succeeded, result.Error);
         Assert.Equal(VisitStatus.CheckedIn, result.Visit!.Status);
+        var stored = await db.Visitors.SingleAsync();
+        Assert.Equal("99 ถนนทดสอบ เขตคลองเตย กรุงเทพฯ", stored.Address);
+        Assert.Null(stored.Email);
+        Assert.Null(stored.DateOfBirth);
         Assert.NotNull(result.Visit.CheckInAt);
         Assert.StartsWith("V", result.Visit.VisitNumber);
 

@@ -68,10 +68,9 @@
         document.getElementById('Title').value = v.title || 'นาย';
         document.getElementById('FirstName').value = v.firstName || '';
         document.getElementById('LastName').value = v.lastName || '';
-        document.getElementById('Address').value = v.address || '';
+        if (document.getElementById('Address')) document.getElementById('Address').value = v.address || '';
       }
       if (!document.getElementById('Phone').value) document.getElementById('Phone').value = v.phone || '';
-      if (!document.getElementById('Email').value) document.getElementById('Email').value = v.email || '';
       if (!document.getElementById('CompanyName').value) document.getElementById('CompanyName').value = v.companyName || '';
       if (!keepIdentity) {
         showAlert('success', 'พบประวัติผู้มาติดต่อ — เติมข้อมูลอัตโนมัติแล้ว');
@@ -168,9 +167,9 @@
     ensureTitleOption(card.title || card.Title || 'นาย');
     document.getElementById('FirstName').value = card.firstName || card.FirstName || '';
     document.getElementById('LastName').value = card.lastName || card.LastName || '';
-    document.getElementById('Address').value = card.address || card.Address || '';
-    const dob = document.getElementById('DateOfBirth');
-    if (dob) dob.value = card.dateOfBirth || card.DateOfBirth || '';
+    if (document.getElementById('Address')) {
+      document.getElementById('Address').value = card.address || card.Address || '';
+    }
     const photo = card.photo || card.PhotoDataUrl;
     if (photo) {
       photoInput.value = photo;

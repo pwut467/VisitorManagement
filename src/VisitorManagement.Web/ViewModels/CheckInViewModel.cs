@@ -27,17 +27,10 @@ public class CheckInViewModel
     [Required(ErrorMessage = "กรุณากรอกเบอร์โทร")]
     public string Phone { get; set; } = string.Empty;
 
-    [Display(Name = "อีเมล")]
-    public string? Email { get; set; }
-
     [Display(Name = "บริษัท / หน่วยงาน")]
     public string? CompanyName { get; set; }
 
-    [Display(Name = "ที่อยู่")]
     public string? Address { get; set; }
-
-    [Display(Name = "วันเกิด")]
-    public string? DateOfBirth { get; set; }
 
     [Display(Name = "ประเภทผู้มาติดต่อ")]
     [Required]
@@ -54,12 +47,8 @@ public class CheckInViewModel
     [Required]
     public int HostEmployeeId { get; set; }
 
-    [Display(Name = "จุดเข้า")]
-    [Required]
     public int GateId { get; set; }
 
-    [Display(Name = "ระยะเวลาที่คาดว่าจะอยู่ (ชั่วโมง)")]
-    [Range(1, 24)]
     public int ExpectedHours { get; set; } = 2;
 
     [Display(Name = "ทะเบียนรถ")]
@@ -68,21 +57,9 @@ public class CheckInViewModel
     [Display(Name = "ประเภทรถ")]
     public string? VehicleType { get; set; }
 
-    [Display(Name = "สิ่งของที่นำเข้า")]
-    public string? ItemsBrought { get; set; }
-
     [Display(Name = "จำนวนผู้ติดตาม")]
     [Range(0, 50)]
     public int AccompanyingCount { get; set; }
-
-    [Display(Name = "ชื่อผู้ติดตาม")]
-    public string? AccompanyingNames { get; set; }
-
-    [Display(Name = "ต้องมีพนักงาน escort")]
-    public bool RequiresEscort { get; set; }
-
-    [Display(Name = "พื้นที่ที่อนุญาต")]
-    public string? AccessArea { get; set; }
 
     [Display(Name = "หมายเหตุ")]
     public string? Notes { get; set; }
@@ -98,6 +75,5 @@ public class CheckInViewModel
     public IEnumerable<SelectListItem> VisitorTypes { get; set; } = [];
     public IEnumerable<SelectListItem> VisitPurposes { get; set; } = [];
     public IEnumerable<SelectListItem> Hosts { get; set; } = [];
-    public IEnumerable<SelectListItem> Gates { get; set; } = [];
     public IEnumerable<SelectListItem> VehicleTypes { get; set; } = [];
 }

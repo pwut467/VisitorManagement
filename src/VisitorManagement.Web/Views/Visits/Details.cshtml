@@ -2,7 +2,6 @@
 @{
     ViewData["Title"] = "รายละเอียด " + Model.VisitNumber;
     var qr = ViewBag.Qr as string;
-    var now = (DateTime)ViewBag.Now;
 }
 
 <div class="row g-3">
@@ -28,12 +27,10 @@
                 </div>
                 <div class="col-md-6">
                     <dl>
-                        <dt>จุดเข้า / ออก</dt><dd>@(Model.GateIn?.Name ?? "-") / @(Model.GateOut?.Name ?? "-")</dd>
                         <dt>เวลาเข้า</dt><dd>@(Model.CheckInAt?.ToString("dd/MM/yyyy HH:mm") ?? "-")</dd>
                         <dt>เวลาออก</dt><dd>@(Model.CheckOutAt?.ToString("dd/MM/yyyy HH:mm") ?? "-")</dd>
-                        <dt>กำหนดออก</dt><dd>@(Model.ExpectedCheckoutAt?.ToString("HH:mm") ?? "-") @(Model.IsOverstay(now) ? "(เกินเวลา)" : "")</dd>
-                        <dt>รถ / ของนำเข้า</dt><dd>@(Model.VehiclePlate ?? "-") · @(Model.ItemsBrought ?? "-")</dd>
-                        <dt>ผู้ติดตาม / escort</dt><dd>@Model.AccompanyingCount คน · @(Model.RequiresEscort ? "ต้อง escort" : "ไม่ต้อง escort")</dd>
+                        <dt>รถ</dt><dd>@(string.IsNullOrWhiteSpace(Model.VehiclePlate) ? "-" : $"{Model.VehicleType} {Model.VehiclePlate}".Trim())</dd>
+                        <dt>ผู้ติดตาม</dt><dd>@Model.AccompanyingCount คน</dd>
                     </dl>
                 </div>
             </div>

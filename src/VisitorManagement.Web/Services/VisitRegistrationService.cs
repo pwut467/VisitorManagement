@@ -90,13 +90,10 @@ public class VisitRegistrationService : IVisitRegistrationService
         visitor.FirstName = model.FirstName.Trim();
         visitor.LastName = model.LastName.Trim();
         visitor.Phone = model.Phone?.Trim();
-        visitor.Email = model.Email?.Trim();
+        visitor.Email = null;
+        visitor.DateOfBirth = null;
         visitor.CompanyName = model.CompanyName?.Trim();
         visitor.Address = model.Address?.Trim();
-        if (DateTime.TryParse(model.DateOfBirth, out var dob))
-        {
-            visitor.DateOfBirth = dob;
-        }
         visitor.UpdatedAt = now;
 
         Visit visit;
@@ -121,20 +118,31 @@ public class VisitRegistrationService : IVisitRegistrationService
             _db.Visits.Add(visit);
         }
 
+        var gateId = model.GateId > 0
+            ? model.GateId
+            : await _db.Gates.Where(g => g.IsActive).Select(g => g.Id).FirstOrDefaultAsync(cancellationToken);
+        var hours = model.ExpectedHours > 0
+            ? model.ExpectedHours
+            : (await _db.CompanyProfiles.Select(c => c.DefaultVisitHours).FirstOrDefaultAsync(cancellationToken));
+        if (hours <= 0)
+        {
+            hours = 2;
+        }
+
         visit.Visitor = visitor;
         visit.VisitorTypeId = model.VisitorTypeId;
         visit.VisitPurposeId = model.VisitPurposeId;
         visit.HostEmployeeId = model.HostEmployeeId;
-        visit.GateInId = model.GateId;
+        visit.GateInId = gateId == 0 ? null : gateId;
         visit.CompanyName = model.CompanyName?.Trim();
         visit.PurposeDetail = model.PurposeDetail?.Trim();
         visit.VehiclePlate = model.VehiclePlate?.Trim();
         visit.VehicleType = model.VehicleType?.Trim();
-        visit.ItemsBrought = model.ItemsBrought?.Trim();
+        visit.ItemsBrought = null;
         visit.AccompanyingCount = model.AccompanyingCount;
-        visit.AccompanyingNames = model.AccompanyingNames?.Trim();
-        visit.RequiresEscort = model.RequiresEscort;
-        visit.AccessArea = model.AccessArea?.Trim();
+        visit.AccompanyingNames = null;
+        visit.RequiresEscort = false;
+        visit.AccessArea = null;
         visit.Notes = model.Notes?.Trim();
 
         var isPreReg = string.Equals(model.SubmitAction, "preregister", StringComparison.OrdinalIgnoreCase);
@@ -147,7 +155,7 @@ public class VisitRegistrationService : IVisitRegistrationService
         {
             visit.Status = VisitStatus.CheckedIn;
             visit.CheckInAt = now;
-            visit.ExpectedCheckoutAt = now.AddHours(model.ExpectedHours);
+            visit.ExpectedCheckoutAt = now.AddHours(hours);
             visit.PdpaConsentAt = now;
         }
 

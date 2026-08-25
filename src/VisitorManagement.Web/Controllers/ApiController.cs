@@ -44,7 +44,6 @@ public class ApiController : Controller
                 visitor.FirstName,
                 visitor.LastName,
                 visitor.Phone,
-                visitor.Email,
                 visitor.CompanyName,
                 visitor.Address,
                 visitor.PhotoPath
