@@ -3,6 +3,7 @@
     ViewData["Title"] = "ผู้ที่อยู่ในพื้นที่";
     var now = (DateTime)ViewBag.Now;
     var here = Context.Request.Path + Context.Request.QueryString;
+    var seq = 0;
 }
 
 <div class="card vm-card p-3">
@@ -10,6 +11,7 @@
         <table class="table align-middle">
             <thead>
             <tr>
+                <th>ลำดับ</th>
                 <th>รหัสบัตร</th>
                 <th>ผู้มาติดต่อ</th>
                 <th>ทะเบียนรถ</th>
@@ -24,6 +26,7 @@
             @foreach (var v in Model)
             {
                 <tr class="@(v.IsOverstay(now) ? "overstay" : "")">
+                    <td>@(++seq)</td>
                     <td class="fw-semibold">@v.VisitNumber</td>
                     <td>
                         @v.Visitor.FullName
@@ -43,7 +46,7 @@
             }
             @if (!Model.Any())
             {
-                <tr><td colspan="8" class="text-muted">ไม่มีผู้มาติดต่ออยู่ในพื้นที่</td></tr>
+                <tr><td colspan="9" class="text-muted">ไม่มีผู้มาติดต่ออยู่ในพื้นที่</td></tr>
             }
             </tbody>
         </table>
