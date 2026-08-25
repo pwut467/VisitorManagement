@@ -72,12 +72,12 @@ public class VisitRegistrationService : IVisitRegistrationService
             return VisitOperationResult.Fail("กรุณากรอกชื่อและนามสกุล");
         }
 
-        if (model.VisitorTypeId <= 0)
+        if (model.VisitorTypeId is not > 0)
         {
             return VisitOperationResult.Fail("กรุณาเลือกประเภทผู้มาติดต่อ");
         }
 
-        if (model.VisitPurposeId <= 0)
+        if (model.VisitPurposeId is not > 0)
         {
             return VisitOperationResult.Fail("กรุณาเลือกวัตถุประสงค์");
         }
@@ -161,8 +161,8 @@ public class VisitRegistrationService : IVisitRegistrationService
         }
 
         visit.Visitor = visitor;
-        visit.VisitorTypeId = model.VisitorTypeId;
-        visit.VisitPurposeId = model.VisitPurposeId;
+        visit.VisitorTypeId = model.VisitorTypeId.Value;
+        visit.VisitPurposeId = model.VisitPurposeId.Value;
         visit.HostEmployee = host;
         visit.GateInId = gateId == 0 ? null : gateId;
         visit.CompanyName = model.CompanyName?.Trim();

@@ -34,13 +34,11 @@ public class CheckInViewModel
 
     [Display(Name = "ประเภทผู้มาติดต่อ")]
     [Required(ErrorMessage = "กรุณาเลือกประเภทผู้มาติดต่อ")]
-    [Range(1, int.MaxValue, ErrorMessage = "กรุณาเลือกประเภทผู้มาติดต่อ")]
-    public int VisitorTypeId { get; set; }
+    public int? VisitorTypeId { get; set; }
 
     [Display(Name = "วัตถุประสงค์")]
     [Required(ErrorMessage = "กรุณาเลือกวัตถุประสงค์")]
-    [Range(1, int.MaxValue, ErrorMessage = "กรุณาเลือกวัตถุประสงค์")]
-    public int VisitPurposeId { get; set; }
+    public int? VisitPurposeId { get; set; }
 
     [Display(Name = "รายละเอียดเรื่องที่มา")]
     public string? PurposeDetail { get; set; }
