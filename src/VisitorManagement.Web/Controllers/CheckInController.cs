@@ -32,6 +32,7 @@ public class CheckInController : Controller
         {
             var visit = await _db.Visits
                 .Include(v => v.Visitor)
+                .Include(v => v.HostEmployee)
                 .FirstOrDefaultAsync(v => v.Id == id);
             if (visit is not null)
             {
@@ -46,7 +47,7 @@ public class CheckInController : Controller
                 model.VisitorTypeId = visit.VisitorTypeId;
                 model.VisitPurposeId = visit.VisitPurposeId;
                 model.PurposeDetail = visit.PurposeDetail;
-                model.HostEmployeeId = visit.HostEmployeeId;
+                model.HostName = visit.HostEmployee.FullName;
                 model.VehiclePlate = visit.VehiclePlate;
                 model.VehicleType = visit.VehicleType;
                 model.AccompanyingCount = visit.AccompanyingCount;
@@ -114,16 +115,6 @@ public class CheckInController : Controller
         model.VisitPurposes = await _db.VisitPurposes.Where(x => x.IsActive)
             .OrderBy(x => x.Name)
             .Select(x => new SelectListItem { Value = x.Id.ToString(), Text = x.Name, Selected = x.Id == model.VisitPurposeId })
-            .ToListAsync();
-        model.Hosts = await _db.Employees.Where(x => x.IsActive)
-            .Include(x => x.Department)
-            .OrderBy(x => x.FullName)
-            .Select(x => new SelectListItem
-            {
-                Value = x.Id.ToString(),
-                Text = $"{x.FullName} ({x.Department.Name})",
-                Selected = x.Id == model.HostEmployeeId
-            })
             .ToListAsync();
         model.VehicleTypes = new[] { "", "รถยนต์", "รถกระบะ", "รถจักรยานยนต์", "รถตู้","รถ 6ล้อ", "รถบรรทุก 10 ล้อ","รถพ่วง" }
             .Select(t => new SelectListItem(string.IsNullOrEmpty(t) ? "— ไม่มีรถ —" : t, t, t == (model.VehicleType ?? "")));

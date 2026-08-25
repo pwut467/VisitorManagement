@@ -44,8 +44,9 @@ public class CheckInViewModel
     public string? PurposeDetail { get; set; }
 
     [Display(Name = "มาติดต่อ (พนักงาน)")]
-    [Required]
-    public int HostEmployeeId { get; set; }
+    [Required(ErrorMessage = "กรุณากรอกชื่อพนักงานที่มาติดต่อ")]
+    [MaxLength(150)]
+    public string HostName { get; set; } = string.Empty;
 
     public int GateId { get; set; }
 
@@ -74,6 +75,5 @@ public class CheckInViewModel
     public IEnumerable<SelectListItem> Titles { get; set; } = [];
     public IEnumerable<SelectListItem> VisitorTypes { get; set; } = [];
     public IEnumerable<SelectListItem> VisitPurposes { get; set; } = [];
-    public IEnumerable<SelectListItem> Hosts { get; set; } = [];
     public IEnumerable<SelectListItem> VehicleTypes { get; set; } = [];
 }

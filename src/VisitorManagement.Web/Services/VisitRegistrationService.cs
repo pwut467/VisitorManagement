@@ -67,6 +67,12 @@ public class VisitRegistrationService : IVisitRegistrationService
             return VisitOperationResult.Fail("ต้องได้รับความยินยอม PDPA ก่อนลงทะเบียนเข้าพื้นที่");
         }
 
+        var host = await ResolveHostEmployeeAsync(model.HostName, cancellationToken);
+        if (host is null)
+        {
+            return VisitOperationResult.Fail("กรุณากรอกชื่อพนักงานที่มาติดต่อ");
+        }
+
         var fullName = $"{model.Title} {model.FirstName} {model.LastName}".Trim();
         var blocked = await _blacklist.FindActiveAsync(nationalId, fullName, cancellationToken);
         if (blocked is not null)
@@ -132,7 +138,7 @@ public class VisitRegistrationService : IVisitRegistrationService
         visit.Visitor = visitor;
         visit.VisitorTypeId = model.VisitorTypeId;
         visit.VisitPurposeId = model.VisitPurposeId;
-        visit.HostEmployeeId = model.HostEmployeeId;
+        visit.HostEmployee = host;
         visit.GateInId = gateId == 0 ? null : gateId;
         visit.CompanyName = model.CompanyName?.Trim();
         visit.PurposeDetail = model.PurposeDetail?.Trim();
@@ -178,6 +184,61 @@ public class VisitRegistrationService : IVisitRegistrationService
             null);
 
         return VisitOperationResult.Ok(visit);
+    }
+
+    private async Task<Employee?> ResolveHostEmployeeAsync(string? hostName, CancellationToken cancellationToken)
+    {
+        var name = NormalizePersonName(hostName);
+        if (name.Length == 0)
+        {
+            return null;
+        }
+
+        var employees = await _db.Employees.ToListAsync(cancellationToken);
+        var match = employees.FirstOrDefault(e =>
+            string.Equals(NormalizePersonName(e.FullName), name, StringComparison.OrdinalIgnoreCase));
+        if (match is not null)
+        {
+            match.IsActive = true;
+            match.FullName = name;
+            return match;
+        }
+
+        var department = await _db.Departments.FirstOrDefaultAsync(d => d.Code == "GEN", cancellationToken)
+            ?? await _db.Departments.FirstOrDefaultAsync(cancellationToken);
+        if (department is null)
+        {
+            department = new Department { Code = "GEN", Name = "ทั่วไป" };
+            _db.Departments.Add(department);
+        }
+
+        var host = new Employee
+        {
+            EmployeeCode = await NextTypedHostCodeAsync(cancellationToken),
+            FullName = name,
+            Department = department,
+            IsActive = true
+        };
+        _db.Employees.Add(host);
+        return host;
+    }
+
+    private async Task<string> NextTypedHostCodeAsync(CancellationToken cancellationToken)
+    {
+        var stamp = TimeHelper.Now.ToString("yyyyMMddHHmmss");
+        var prefix = "H" + stamp;
+        var exists = await _db.Employees.AnyAsync(e => e.EmployeeCode == prefix, cancellationToken);
+        return exists ? prefix + "-" + Guid.NewGuid().ToString("N")[..4].ToUpperInvariant() : prefix;
+    }
+
+    private static string NormalizePersonName(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return string.Empty;
+        }
+
+        return string.Join(' ', value.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries));
     }
 
     public async Task<VisitOperationResult> CheckOutAsync(

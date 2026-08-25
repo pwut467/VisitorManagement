@@ -174,6 +174,48 @@ public class VisitRegistrationServiceTests
         Assert.Equal(2, await db.Visits.CountAsync());
         Assert.Equal("089-000-1111", db.Visitors.Single().Phone);
     }
+
+    [Fact]
+    public async Task TypedHostNameReusesExistingEmployee()
+    {
+        var db = TestDb.Create();
+        await TestDb.SeedGraphAsync(db);
+        var svc = TestDb.CreateRegistration(db);
+        var model = TestDb.ValidCheckIn(db);
+        model.HostName = "  สมหญิง   รักงาน  ";
+        var result = await svc.RegisterAsync(model, "u1");
+        Assert.True(result.Succeeded, result.Error);
+        Assert.Equal(1, await db.Employees.CountAsync());
+        Assert.Equal(db.Employees.Single().Id, result.Visit!.HostEmployeeId);
+        Assert.Equal("สมหญิง รักงาน", db.Employees.Single().FullName);
+    }
+
+    [Fact]
+    public async Task TypedHostNameCreatesEmployeeWhenUnknown()
+    {
+        var db = TestDb.Create();
+        await TestDb.SeedGraphAsync(db);
+        var svc = TestDb.CreateRegistration(db);
+        var model = TestDb.ValidCheckIn(db);
+        model.HostName = "นายเวิน บุษภาค";
+        var result = await svc.RegisterAsync(model, "u1");
+        Assert.True(result.Succeeded, result.Error);
+        Assert.Equal(2, await db.Employees.CountAsync());
+        Assert.Equal("นายเวิน บุษภาค", result.Visit!.HostEmployee.FullName);
+    }
+
+    [Fact]
+    public async Task EmptyHostNameIsRejected()
+    {
+        var db = TestDb.Create();
+        await TestDb.SeedGraphAsync(db);
+        var svc = TestDb.CreateRegistration(db);
+        var model = TestDb.ValidCheckIn(db);
+        model.HostName = "   ";
+        var result = await svc.RegisterAsync(model, "u1");
+        Assert.False(result.Succeeded);
+        Assert.Contains("พนักงาน", result.Error);
+    }
 }
 
 internal static class TestDb
@@ -215,7 +257,7 @@ internal static class TestDb
         CompanyName = "บริษัท ใหม่ จำกัด",
         VisitorTypeId = db.VisitorTypes.First().Id,
         VisitPurposeId = db.VisitPurposes.First().Id,
-        HostEmployeeId = db.Employees.First().Id,
+        HostName = db.Employees.First().FullName,
         GateId = db.Gates.First().Id,
         ExpectedHours = 2,
         PdpaConsent = true,
