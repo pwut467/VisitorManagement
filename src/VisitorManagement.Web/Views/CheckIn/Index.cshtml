@@ -115,7 +115,8 @@
                 </div>
                 @if (!isHostOnly)
                 {
-                    <button class="btn btn-teal w-100 mb-2" type="submit" id="btn-checkin">บันทึกเข้า + พิมพ์บัตร</button>
+                    var printDirect = ViewBag.AutoPrintBadge as bool? ?? true;
+                    <button class="btn btn-teal w-100 mb-2" type="submit" id="btn-checkin">@(printDirect ? "บันทึกเข้า + พิมพ์บัตร" : "บันทึกเข้า + ดูตัวอย่างบัตร")</button>
                 }
                 <button class="btn btn-outline-primary w-100" type="submit" id="btn-prereg">ลงทะเบียนล่วงหน้า</button>
             </div>

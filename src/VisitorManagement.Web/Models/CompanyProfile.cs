@@ -21,4 +21,8 @@ public class CompanyProfile
     public int DefaultVisitHours { get; set; } = 2;
 
     public int OverstayGraceMinutes { get; set; } = 15;
+
+    public bool AutoPrintBadge { get; set; } = true;
+
+    public int SeedRevision { get; set; }
 }

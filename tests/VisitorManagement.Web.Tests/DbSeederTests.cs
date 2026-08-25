@@ -48,6 +48,7 @@ public class DbSeederTests
         Assert.True(await users.IsInRoleAsync(security, AppRoles.Security));
         Assert.Null(await users.FindByNameAsync("admin@company.local"));
         Assert.True(await db.Employees.AllAsync(e => e.UserId == null));
-        Assert.Equal(1, await db.Visits.CountAsync());
+        Assert.Equal(0, await db.Visits.CountAsync());
+        Assert.Equal(0, await db.Visitors.CountAsync());
     }
 }

@@ -24,6 +24,18 @@
             <label asp-for="OverstayGraceMinutes" class="form-label"></label>
             <input asp-for="OverstayGraceMinutes" class="form-control" type="number" />
         </div>
+        <fieldset class="mb-3">
+            <legend class="form-label fs-6">@Html.DisplayNameFor(m => m.AutoPrintBadge)</legend>
+            <div class="form-check">
+                <input class="form-check-input" type="radio" name="AutoPrintBadge" value="true" id="print-direct" @(Model.AutoPrintBadge ? "checked" : null) />
+                <label class="form-check-label" for="print-direct">พิมพ์ออกเครื่องพิมพ์เลย</label>
+            </div>
+            <div class="form-check">
+                <input class="form-check-input" type="radio" name="AutoPrintBadge" value="false" id="print-preview" @(!Model.AutoPrintBadge ? "checked" : null) />
+                <label class="form-check-label" for="print-preview">แสดงตัวอย่างก่อน (Print Preview)</label>
+            </div>
+            <div class="form-text">ใช้กับหน้าลงทะเบียนผู้มาติดต่อ หลังกดบันทึกเข้า</div>
+        </fieldset>
         <button class="btn btn-teal">บันทึก</button>
     </form>
 </div>

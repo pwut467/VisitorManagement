@@ -95,7 +95,8 @@ public class CheckInController : Controller
             return RedirectToAction("Details", "Visits", new { id = result.Visit!.Id });
         }
 
-        return RedirectToAction("Badge", "Visits", new { id = result.Visit!.Id, autoprint = true });
+        var autoPrint = await _db.CompanyProfiles.Select(c => c.AutoPrintBadge).FirstOrDefaultAsync();
+        return RedirectToAction("Badge", "Visits", new { id = result.Visit!.Id, autoprint = autoPrint });
     }
 
     private async Task PopulateAsync(CheckInViewModel model)
@@ -105,6 +106,8 @@ public class CheckInController : Controller
         {
             model.ExpectedHours = company?.DefaultVisitHours ?? 2;
         }
+
+        ViewBag.AutoPrintBadge = company?.AutoPrintBadge ?? true;
 
         model.Titles = new[] { "นาย", "นาง", "นางสาว", "อื่นๆ" }
             .Select(t => new SelectListItem(t, t, t == model.Title));

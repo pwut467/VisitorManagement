@@ -26,7 +26,8 @@ public class SettingsController : Controller
             Address = c.Address,
             BadgeFooter = c.BadgeFooter,
             DefaultVisitHours = c.DefaultVisitHours,
-            OverstayGraceMinutes = c.OverstayGraceMinutes
+            OverstayGraceMinutes = c.OverstayGraceMinutes,
+            AutoPrintBadge = c.AutoPrintBadge
         });
     }
 
@@ -45,6 +46,7 @@ public class SettingsController : Controller
         c.BadgeFooter = model.BadgeFooter.Trim();
         c.DefaultVisitHours = model.DefaultVisitHours;
         c.OverstayGraceMinutes = model.OverstayGraceMinutes;
+        c.AutoPrintBadge = model.AutoPrintBadge;
         await _db.SaveChangesAsync();
         TempData["Success"] = "บันทึกการตั้งค่าแล้ว";
         return RedirectToAction(nameof(Index));

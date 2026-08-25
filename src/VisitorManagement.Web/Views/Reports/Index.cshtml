@@ -4,16 +4,15 @@
     var from = (DateTime)ViewBag.From;
     var to = (DateTime)ViewBag.To;
     var types = (IEnumerable<VisitorType>)ViewBag.Types;
-    var departments = (IEnumerable<Department>)ViewBag.Departments;
 }
 
 <div class="card vm-card p-3 mb-3">
     <form method="get" class="row g-2 align-items-end">
-        <div class="col-md-2">
+        <div class="col-md-3">
             <label class="form-label">จาก</label>
             <input type="date" name="from" class="form-control" value="@from.ToString("yyyy-MM-dd")" />
         </div>
-        <div class="col-md-2">
+        <div class="col-md-3">
             <label class="form-label">ถึง</label>
             <input type="date" name="to" class="form-control" value="@to.ToString("yyyy-MM-dd")" />
         </div>
@@ -28,18 +27,8 @@
             </select>
         </div>
         <div class="col-md-3">
-            <label class="form-label">แผนกที่มาหา</label>
-            <select name="departmentId" class="form-select">
-                <option value="">ทั้งหมด</option>
-                @foreach (var d in departments)
-                {
-                    <option value="@d.Id" selected="@(ViewBag.DepartmentId as int? == d.Id)">@d.Name</option>
-                }
-            </select>
-        </div>
-        <div class="col-md-2">
             <button class="btn btn-teal">กรอง</button>
-            <a class="btn btn-outline-secondary" asp-action="Csv" asp-route-from="@from.ToString("yyyy-MM-dd")" asp-route-to="@to.ToString("yyyy-MM-dd")">CSV</a>
+            <a class="btn btn-outline-secondary" asp-action="Excel" asp-route-from="@from.ToString("yyyy-MM-dd")" asp-route-to="@to.ToString("yyyy-MM-dd")" asp-route-visitorTypeId="@ViewBag.VisitorTypeId">Excel</a>
         </div>
     </form>
 </div>

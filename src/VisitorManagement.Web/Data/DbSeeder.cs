@@ -39,7 +39,9 @@ public static class DbSeeder
                 Address = "199 หมู่ 9 บ.โนนทอง ต.สีวิเชียร อ.น้ำยืน จ.อุบลราชธานี",
                 BadgeFooter = "กรุณาติดบัตรนี้ตลอดเวลาที่อยู่ในบริษัท และคืนบัตรเมื่อออกจากพื้นที่",
                 DefaultVisitHours = 2,
-                OverstayGraceMinutes = 15
+                OverstayGraceMinutes = 15,
+                AutoPrintBadge = true,
+                SeedRevision = 1
             });
         }
 
@@ -104,6 +106,7 @@ public static class DbSeeder
         }
 
         await ResetUsersAsync(db, userManager);
+        await ClearVisitorRecordsOnceAsync(db);
 
         if (!await db.BlacklistEntries.AnyAsync())
         {
@@ -114,48 +117,6 @@ public static class DbSeeder
                 Reason = "เคยฝ่าฝืนระเบียบความปลอดภัยของบริษัท",
                 CreatedAt = TimeHelper.Now,
                 IsActive = true
-            });
-            await db.SaveChangesAsync();
-        }
-
-        if (!await db.Visits.AnyAsync())
-        {
-            var visitor = new Visitor
-            {
-                NationalId = "3101700123452",
-                Title = "นาย",
-                FirstName = "ประเสริฐ",
-                LastName = "มาเยือน",
-                Phone = "089-111-2222",
-                CompanyName = "บริษัท คู่ค้า จำกัด",
-                CreatedAt = TimeHelper.Now,
-                UpdatedAt = TimeHelper.Now
-            };
-            db.Visitors.Add(visitor);
-            await db.SaveChangesAsync();
-
-            var type = await db.VisitorTypes.FirstAsync();
-            var purpose = await db.VisitPurposes.FirstAsync();
-            var host = await db.Employees.FirstAsync();
-            var gate = await db.Gates.FirstAsync();
-            var now = TimeHelper.Now;
-
-            db.Visits.Add(new Visit
-            {
-                VisitNumber = $"V{now:yyyyMMdd}-0001",
-                VisitCode = Guid.NewGuid().ToString("N"),
-                VisitorId = visitor.Id,
-                VisitorTypeId = type.Id,
-                VisitPurposeId = purpose.Id,
-                HostEmployeeId = host.Id,
-                GateInId = gate.Id,
-                CompanyName = visitor.CompanyName,
-                PurposeDetail = "ประชุมโครงการประจำเดือน",
-                Status = VisitStatus.CheckedIn,
-                CheckInAt = now.AddHours(-1),
-                ExpectedCheckoutAt = now.AddHours(1),
-                PdpaConsentAt = now.AddHours(-1),
-                CreatedAt = now.AddHours(-1)
             });
             await db.SaveChangesAsync();
         }
@@ -191,6 +152,21 @@ public static class DbSeeder
 
         await EnsureUserAsync(userManager, "SKAdmin", defaultPassword, "ผู้ดูแลระบบ", AppRoles.Admin);
         await EnsureUserAsync(userManager, "9641", defaultPassword, "รปภ.", AppRoles.Security);
+    }
+
+    private static async Task ClearVisitorRecordsOnceAsync(AppDbContext db)
+    {
+        var company = await db.CompanyProfiles.FirstOrDefaultAsync();
+        if (company is null || company.SeedRevision >= 1)
+        {
+            return;
+        }
+
+        db.VisitItems.RemoveRange(await db.VisitItems.ToListAsync());
+        db.Visits.RemoveRange(await db.Visits.ToListAsync());
+        db.Visitors.RemoveRange(await db.Visitors.ToListAsync());
+        company.SeedRevision = 1;
+        await db.SaveChangesAsync();
     }
 
     private static async Task EnsureUserAsync(

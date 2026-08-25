@@ -18,4 +18,7 @@ public class SettingsViewModel
 
     [Range(0, 240), Display(Name = "ผ่อนผันเกินเวลา (นาที)")]
     public int OverstayGraceMinutes { get; set; }
+
+    [Display(Name = "หลังลงทะเบียน Check-in")]
+    public bool AutoPrintBadge { get; set; } = true;
 }

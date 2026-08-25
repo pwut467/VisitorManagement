@@ -1,10 +1,10 @@
+using ClosedXML.Excel;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using VisitorManagement.Web.Data;
 using VisitorManagement.Web.Models;
 using VisitorManagement.Web.Services;
-using VisitorManagement.Web.ViewModels;
 
 namespace VisitorManagement.Web.Controllers;
 
@@ -18,17 +18,72 @@ public class ReportsController : Controller
         _db = db;
     }
 
-    public async Task<IActionResult> Index(DateTime? from, DateTime? to, int? visitorTypeId, int? departmentId)
+    public async Task<IActionResult> Index(DateTime? from, DateTime? to, int? visitorTypeId)
     {
         var start = (from ?? TimeHelper.Today).Date;
         var end = (to ?? TimeHelper.Today).Date.AddDays(1);
+        var list = await QueryVisits(start, end, visitorTypeId).ToListAsync();
+        ViewBag.From = start;
+        ViewBag.To = end.AddDays(-1);
+        ViewBag.Types = await _db.VisitorTypes.OrderBy(x => x.Name).ToListAsync();
+        ViewBag.VisitorTypeId = visitorTypeId;
+        return View(list);
+    }
 
+    public async Task<IActionResult> Excel(DateTime? from, DateTime? to, int? visitorTypeId)
+    {
+        var start = (from ?? TimeHelper.Today).Date;
+        var end = (to ?? TimeHelper.Today).Date.AddDays(1);
+        var list = await QueryVisits(start, end, visitorTypeId).ToListAsync();
+
+        using var workbook = new XLWorkbook();
+        var sheet = workbook.Worksheets.Add("ผู้มาติดต่อ");
+        var headers = new[] { "รหัส", "ชื่อผู้มาติดต่อ", "เลขบัตร", "หน่วยงาน", "ประเภท", "วัตถุประสงค์", "ผู้ต้องการพบ", "เข้า", "ออก", "รถ", "สถานะ" };
+        for (var i = 0; i < headers.Length; i++)
+        {
+            sheet.Cell(1, i + 1).Value = headers[i];
+        }
+
+        var row = 2;
+        foreach (var v in list)
+        {
+            sheet.Cell(row, 1).Value = v.VisitNumber;
+            sheet.Cell(row, 2).Value = v.Visitor.FullName;
+            sheet.Cell(row, 3).Value = ThaiNationalId.Mask(v.Visitor.NationalId);
+            sheet.Cell(row, 4).Value = v.CompanyName ?? "";
+            sheet.Cell(row, 5).Value = v.VisitorType.Name;
+            sheet.Cell(row, 6).Value = v.VisitPurpose.Name;
+            sheet.Cell(row, 7).Value = v.HostEmployee.FullName;
+            sheet.Cell(row, 8).Value = v.CheckInAt?.ToString("yyyy-MM-dd HH:mm") ?? "";
+            sheet.Cell(row, 9).Value = v.CheckOutAt?.ToString("yyyy-MM-dd HH:mm") ?? "";
+            sheet.Cell(row, 10).Value = string.IsNullOrWhiteSpace(v.VehiclePlate) ? "" : $"{v.VehicleType} {v.VehiclePlate}".Trim();
+            sheet.Cell(row, 11).Value = v.Status.ToString();
+            row++;
+        }
+
+        var header = sheet.Range(1, 1, 1, headers.Length);
+        header.Style.Font.Bold = true;
+        header.Style.Fill.BackgroundColor = XLColor.FromHtml("#1a56a0");
+        header.Style.Font.FontColor = XLColor.White;
+        sheet.SheetView.FreezeRows(1);
+        sheet.Columns().AdjustToContents();
+
+        using var stream = new MemoryStream();
+        workbook.SaveAs(stream);
+        var toDate = end.AddDays(-1);
+        return File(
+            stream.ToArray(),
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            $"visitors-{start:yyyyMMdd}-{toDate:yyyyMMdd}.xlsx");
+    }
+
+    private IQueryable<Visit> QueryVisits(DateTime start, DateTime end, int? visitorTypeId)
+    {
         var q = _db.Visits
             .Include(v => v.Visitor)
-            .Include(v => v.HostEmployee).ThenInclude(h => h.Department)
+            .Include(v => v.HostEmployee)
             .Include(v => v.VisitorType)
             .Include(v => v.VisitPurpose)
-            .Include(v => v.GateIn)
             .Where(v => (v.CheckInAt ?? v.CreatedAt) >= start && (v.CheckInAt ?? v.CreatedAt) < end);
 
         if (visitorTypeId is int t)
@@ -36,63 +91,6 @@ public class ReportsController : Controller
             q = q.Where(v => v.VisitorTypeId == t);
         }
 
-        if (departmentId is int d)
-        {
-            q = q.Where(v => v.HostEmployee.DepartmentId == d);
-        }
-
-        var list = await q.OrderBy(v => v.CheckInAt).ToListAsync();
-        ViewBag.From = start;
-        ViewBag.To = end.AddDays(-1);
-        ViewBag.Types = await _db.VisitorTypes.OrderBy(x => x.Name).ToListAsync();
-        ViewBag.Departments = await _db.Departments.OrderBy(x => x.Name).ToListAsync();
-        ViewBag.VisitorTypeId = visitorTypeId;
-        ViewBag.DepartmentId = departmentId;
-        return View(list);
-    }
-
-    public async Task<IActionResult> Csv(DateTime? from, DateTime? to)
-    {
-        var start = (from ?? TimeHelper.Today).Date;
-        var end = (to ?? TimeHelper.Today).Date.AddDays(1);
-        var list = await _db.Visits
-            .Include(v => v.Visitor)
-            .Include(v => v.HostEmployee).ThenInclude(h => h.Department)
-            .Include(v => v.VisitorType)
-            .Where(v => (v.CheckInAt ?? v.CreatedAt) >= start && (v.CheckInAt ?? v.CreatedAt) < end)
-            .OrderBy(v => v.CheckInAt)
-            .ToListAsync();
-
-        var sb = new System.Text.StringBuilder();
-        sb.AppendLine("VisitNumber,Name,NationalId,Company,Type,Host,Department,CheckIn,CheckOut,Vehicle,Status");
-        foreach (var v in list)
-        {
-            sb.AppendLine(string.Join(',',
-                Csv(v.VisitNumber),
-                Csv(v.Visitor.FullName),
-                Csv(ThaiNationalId.Mask(v.Visitor.NationalId)),
-                Csv(v.CompanyName),
-                Csv(v.VisitorType.Name),
-                Csv(v.HostEmployee.FullName),
-                Csv(v.HostEmployee.Department.Name),
-                Csv(v.CheckInAt?.ToString("yyyy-MM-dd HH:mm")),
-                Csv(v.CheckOutAt?.ToString("yyyy-MM-dd HH:mm")),
-                Csv(v.VehiclePlate),
-                Csv(v.Status.ToString())));
-        }
-
-        var bytes = System.Text.Encoding.UTF8.GetPreamble().Concat(System.Text.Encoding.UTF8.GetBytes(sb.ToString())).ToArray();
-        return File(bytes, "text/csv", $"visitors-{start:yyyyMMdd}.csv");
-    }
-
-    private static string Csv(string? value)
-    {
-        var s = value ?? "";
-        if (s.Contains(',') || s.Contains('"') || s.Contains('\n'))
-        {
-            return "\"" + s.Replace("\"", "\"\"") + "\"";
-        }
-
-        return s;
+        return q.OrderBy(v => v.CheckInAt);
     }
 }
