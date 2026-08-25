@@ -56,14 +56,20 @@
             }
         </div>
     </div>
-    <div class="col-lg-4">
-        <div class="card vm-card p-3 text-center">
-            @if (!string.IsNullOrEmpty(Model.PhotoPath))
-            {
-                <img src="@Model.PhotoPath" class="rounded mb-3" style="max-width:100%" alt="photo" />
-            }
-            <img src="@qr" alt="qr" style="width:180px" />
-            <div class="small text-muted mt-2">สแกนเพื่อ Check-out</div>
+    @if (!string.IsNullOrEmpty(Model.PhotoPath) || (Model.Status == VisitStatus.CheckedIn && !string.IsNullOrEmpty(qr)))
+    {
+        <div class="col-lg-4">
+            <div class="card vm-card p-3 text-center">
+                @if (!string.IsNullOrEmpty(Model.PhotoPath))
+                {
+                    <img src="@Model.PhotoPath" class="rounded mb-3" style="max-width:100%" alt="photo" />
+                }
+                @if (Model.Status == VisitStatus.CheckedIn && !string.IsNullOrEmpty(qr))
+                {
+                    <img src="@qr" alt="qr" style="width:180px" />
+                    <div class="small text-muted mt-2">สแกนเพื่อ Check-out</div>
+                }
+            </div>
         </div>
-    </div>
+    }
 </div>

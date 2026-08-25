@@ -99,7 +99,10 @@ public class VisitsController : Controller
             return NotFound();
         }
 
-        ViewBag.Qr = _qr.DataUrl("VISIT|" + visit.VisitCode);
+        if (visit.Status == VisitStatus.CheckedIn)
+        {
+            ViewBag.Qr = _qr.DataUrl("VISIT|" + visit.VisitCode);
+        }
         ViewBag.Now = TimeHelper.Now;
         return View(visit);
     }
