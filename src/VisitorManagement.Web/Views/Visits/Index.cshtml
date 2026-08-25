@@ -15,8 +15,8 @@
             <label class="form-label">สถานะ</label>
             <select name="Status" class="form-select">
                 <option value="">ทั้งหมด</option>
-                <option value="@VisitStatus.CheckedIn" @(filter.Status == VisitStatus.CheckedIn ? "selected" : null)>CheckedIn</option>
-                <option value="@VisitStatus.CheckedOut" @(filter.Status == VisitStatus.CheckedOut ? "selected" : null)>CheckedOut</option>
+                <option value="@VisitStatus.CheckedIn" selected="@(filter.Status == VisitStatus.CheckedIn)">CheckedIn</option>
+                <option value="@VisitStatus.CheckedOut" selected="@(filter.Status == VisitStatus.CheckedOut)">CheckedOut</option>
             </select>
         </div>
         <div class="col-md-2">
