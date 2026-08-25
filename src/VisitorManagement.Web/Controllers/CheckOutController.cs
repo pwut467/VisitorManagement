@@ -24,9 +24,7 @@ public class CheckOutController : Controller
     [HttpGet]
     public async Task<IActionResult> Index(string? code)
     {
-        ViewBag.Gates = await _db.Gates.Where(g => g.IsActive)
-            .Select(g => new SelectListItem(g.Name, g.Id.ToString()))
-            .ToListAsync();
+        ViewBag.Gates = await LoadGatesAsync(null);
         ViewBag.Code = code;
         return View();
     }
@@ -35,9 +33,8 @@ public class CheckOutController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Index(string code, int? gateOutId, string? notes)
     {
-        ViewBag.Gates = await _db.Gates.Where(g => g.IsActive)
-            .Select(g => new SelectListItem(g.Name, g.Id.ToString()))
-            .ToListAsync();
+        gateOutId ??= await DefaultGateIdAsync();
+        ViewBag.Gates = await LoadGatesAsync(gateOutId);
         ViewBag.Code = code;
 
         if (string.IsNullOrWhiteSpace(code))
@@ -98,4 +95,20 @@ public class CheckOutController : Controller
             onSite = visit.Status == VisitStatus.CheckedIn
         });
     }
+
+    private async Task<List<SelectListItem>> LoadGatesAsync(int? selectedId)
+    {
+        var gates = await _db.Gates.Where(g => g.IsActive).OrderBy(g => g.Name).ToListAsync();
+        var defaultId = selectedId
+            ?? gates.FirstOrDefault(g => g.Name == "ประตูใหญ่")?.Id
+            ?? gates.FirstOrDefault()?.Id;
+        return gates
+            .Select(g => new SelectListItem(g.Name, g.Id.ToString(), g.Id == defaultId))
+            .ToList();
+    }
+
+    private Task<int?> DefaultGateIdAsync() =>
+        _db.Gates.Where(g => g.IsActive && g.Name == "ประตูใหญ่")
+            .Select(g => (int?)g.Id)
+            .FirstOrDefaultAsync();
 }

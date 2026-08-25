@@ -21,15 +21,4 @@
 
   input.addEventListener('change', lookup);
   input.addEventListener('blur', lookup);
-
-  if (window.Html5Qrcode) {
-    const scanner = new Html5Qrcode('reader');
-    Html5Qrcode.getCameras().then(cameras => {
-      if (!cameras.length) return;
-      scanner.start(cameras[0].id, { fps: 8, qrbox: 220 }, decoded => {
-        input.value = decoded;
-        lookup();
-      }).catch(() => {});
-    }).catch(() => {});
-  }
 })();

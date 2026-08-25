@@ -7,14 +7,12 @@
     <div class="col-lg-6">
         <div class="card vm-card p-4">
             <h2 class="h5">สแกนบัตร Visitor</h2>
-            <p class="text-muted">ใช้เครื่องสแกน QR แบบ USB (keyboard wedge) หรือกล้อง หรือพิมพ์รหัสบัตร</p>
+            <p class="text-muted">ใช้เครื่องสแกน QR แบบ USB (keyboard wedge) หรือพิมพ์รหัสบัตร</p>
             <form asp-action="Index" method="post">
                 <label class="form-label">รหัสบัตร / Visit Number</label>
                 <input name="code" id="code" class="form-control form-control-lg mb-3" value="@ViewBag.Code" autofocus placeholder="สแกนที่นี่" />
                 <label class="form-label">จุดออก</label>
-                <select name="gateOutId" class="form-select mb-3" asp-items="gates">
-                    <option value="">— เลือกจุดออก —</option>
-                </select>
+                <select name="gateOutId" class="form-select mb-3" asp-items="gates"></select>
                 <label class="form-label">หมายเหตุ (เช่น บัตรหาย)</label>
                 <input name="notes" class="form-control mb-3" />
                 <button class="btn btn-teal">บันทึกเวลาออก</button>
@@ -26,16 +24,8 @@
             </div>
         </div>
     </div>
-    <div class="col-lg-6">
-        <div class="card vm-card p-4">
-            <h2 class="h5">สแกนด้วยกล้อง</h2>
-            <div id="reader" style="width:100%"></div>
-            <p class="small text-muted mt-2 mb-0">QR บนบัตรมีรูปแบบ VISIT|&lt;รหัส&gt;</p>
-        </div>
-    </div>
 </div>
 
 @section Scripts {
-    <script src="https://unpkg.com/html5-qrcode"></script>
     <script src="~/js/checkout.js" asp-append-version="true"></script>
 }
