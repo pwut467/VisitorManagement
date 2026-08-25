@@ -24,8 +24,7 @@ public class CheckInViewModel
     public string LastName { get; set; } = string.Empty;
 
     [Display(Name = "เบอร์โทร")]
-    [Required(ErrorMessage = "กรุณากรอกเบอร์โทร")]
-    public string Phone { get; set; } = string.Empty;
+    public string? Phone { get; set; }
 
     [Display(Name = "บริษัท / หน่วยงาน")]
     public string? CompanyName { get; set; }

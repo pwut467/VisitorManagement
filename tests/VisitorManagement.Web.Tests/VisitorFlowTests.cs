@@ -178,6 +178,19 @@ public class VisitRegistrationServiceTests
     }
 
     [Fact]
+    public async Task PhoneIsOptional()
+    {
+        var db = TestDb.Create();
+        await TestDb.SeedGraphAsync(db);
+        var svc = TestDb.CreateRegistration(db);
+        var model = TestDb.ValidCheckIn(db);
+        model.Phone = null;
+        var result = await svc.RegisterAsync(model, "u1");
+        Assert.True(result.Succeeded, result.Error);
+        Assert.True(string.IsNullOrEmpty(db.Visitors.Single().Phone));
+    }
+
+    [Fact]
     public async Task TypedHostNameReusesExistingEmployee()
     {
         var db = TestDb.Create();

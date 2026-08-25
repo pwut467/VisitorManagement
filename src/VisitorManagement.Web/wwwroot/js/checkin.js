@@ -256,9 +256,6 @@
   document.getElementById('btn-checkin')?.addEventListener('click', () => {
     document.getElementById('SubmitAction').value = 'checkin';
   });
-  document.getElementById('btn-prereg')?.addEventListener('click', () => {
-    document.getElementById('SubmitAction').value = 'preregister';
-  });
 
   refreshReaderStatus();
   setInterval(refreshReaderStatus, 4000);

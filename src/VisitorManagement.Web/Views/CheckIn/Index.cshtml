@@ -1,7 +1,6 @@
 @model CheckInViewModel
 @{
     ViewData["Title"] = "ลงทะเบียนผู้มาติดต่อ";
-    var isHostOnly = User.IsInRole("Host") && !User.IsInRole("Admin") && !User.IsInRole("Security") && !User.IsInRole("Reception");
     var printBadgeUrl = TempData["PrintBadgeUrl"] as string;
 }
 
@@ -51,7 +50,6 @@
                     <div class="col-md-6">
                         <label asp-for="Phone" class="form-label"></label>
                         <input asp-for="Phone" class="form-control" />
-                        <span asp-validation-for="Phone" class="text-danger"></span>
                     </div>
                     <div class="col-md-6">
                         <label asp-for="CompanyName" class="form-label"></label>
@@ -120,12 +118,10 @@
                         ผู้มาติดต่อยินยอมให้เก็บข้อมูลส่วนบุคคลตาม <a asp-controller="Home" asp-action="Privacy" target="_blank">PDPA</a> เพื่อความปลอดภัยของสถานประกอบการ
                     </label>
                 </div>
-                @if (!isHostOnly)
-                {
+                @{
                     var printDirect = ViewFlag.IsOn(ViewBag.AutoPrintBadge, whenMissing: true);
-                    <button class="btn btn-teal w-100 mb-2" type="submit" id="btn-checkin">@(printDirect ? "บันทึกเข้า + พิมพ์บัตร" : "บันทึกเข้า + ดูตัวอย่างบัตร")</button>
                 }
-                <button class="btn btn-outline-primary w-100" type="submit" id="btn-prereg">ลงทะเบียนล่วงหน้า</button>
+                <button class="btn btn-teal w-100" type="submit" id="btn-checkin">@(printDirect ? "บันทึกเข้า + พิมพ์บัตร" : "บันทึกเข้า + ดูตัวอย่างบัตร")</button>
             </div>
         </div>
     </div>

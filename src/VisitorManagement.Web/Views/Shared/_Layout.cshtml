@@ -68,17 +68,31 @@
                 </div>
             </div>
             <div class="content">
-                @if (TempData["Success"] is string success)
-                {
-                    <div class="alert alert-success alert-dismissible fade show">@success<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>
-                }
-                @if (TempData["Error"] is string error)
-                {
-                    <div class="alert alert-danger alert-dismissible fade show">@error<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>
-                }
                 @RenderBody()
             </div>
         </div>
+    </div>
+    <div class="toast-container position-fixed top-0 end-0 p-3">
+        @if (TempData["Success"] is string success)
+        {
+            <div class="toast vm-toast vm-toast-success" role="status" aria-live="polite" data-bs-delay="4200">
+                <div class="toast-body d-flex align-items-center gap-2">
+                    <i class="bi bi-check-circle-fill fs-5"></i>
+                    <span>@success</span>
+                    <button type="button" class="btn-close ms-auto" data-bs-dismiss="toast" aria-label="ปิด"></button>
+                </div>
+            </div>
+        }
+        @if (TempData["Error"] is string error)
+        {
+            <div class="toast vm-toast vm-toast-error" role="alert" aria-live="assertive" data-bs-delay="6000">
+                <div class="toast-body d-flex align-items-center gap-2">
+                    <i class="bi bi-exclamation-triangle-fill fs-5"></i>
+                    <span>@error</span>
+                    <button type="button" class="btn-close ms-auto" data-bs-dismiss="toast" aria-label="ปิด"></button>
+                </div>
+            </div>
+        }
     </div>
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
