@@ -80,7 +80,7 @@ Server=.\SQLEXPRESS;Database=VisitorManagment;Trusted_Connection=True;TrustServe
 
 รอบแรกที่เปิดแอป ระบบจะ:
 
-1. `dotnet ef database migrate` ผ่าน `Database.Migrate()` — สร้างฐาน `VisitorManagment` และตารางทั้งหมด
+1. `Database.Migrate()` — สร้างฐาน `VisitorManagment` และตารางทั้งหมดบน SQL Server Express
 2. seed ข้อมูลหลัก (แผนก, พนักงาน, ประตู, ประเภทผู้มาติดต่อ, ผู้ใช้ทดลอง, รายการเข้าพบตัวอย่าง)
 
 หรือรัน migrate เองก่อนเปิดเว็บ:

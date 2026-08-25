@@ -107,7 +107,9 @@ public static class DbSeeder
         await EnsureUserAsync(userManager, "security@company.local", "Security@12345", "รปภ. ประตูใหญ่", AppRoles.Security);
         await EnsureUserAsync(userManager, "reception@company.local", "Reception@12345", "เจ้าหน้าที่ต้อนรับ", AppRoles.Reception);
 
-        var hostEmp = await db.Employees.FirstAsync(e => e.EmployeeCode == "E002");
+        var hostEmp = await db.Employees.FirstOrDefaultAsync(e => e.EmployeeCode == "5300162")
+            ?? await db.Employees.FirstOrDefaultAsync(e => e.EmployeeCode == "E002")
+            ?? await db.Employees.FirstAsync();
         var hostUser = await EnsureUserAsync(userManager, "host@company.local", "Host@12345", hostEmp.FullName, AppRoles.Host);
         if (hostEmp.UserId != hostUser.Id)
         {
