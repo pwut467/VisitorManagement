@@ -4,6 +4,7 @@
     var from = (DateTime)ViewBag.From;
     var to = (DateTime)ViewBag.To;
     var types = (IEnumerable<VisitorType>)ViewBag.Types;
+    var seq = 0;
 }
 
 <div class="card vm-card p-3 mb-3">
@@ -35,23 +36,43 @@
 
 <div class="card vm-card p-3">
     <p class="text-muted">ทั้งหมด @Model.Count() รายการ · เข้าแล้ว @Model.Count(v => v.CheckInAt != null) · ออกแล้ว @Model.Count(v => v.CheckOutAt != null)</p>
-    <div class="table-responsive">
-        <table class="table">
-            <thead><tr><th>รหัส</th><th>ชื่อ</th><th>ประเภท</th><th>มาหา</th><th>เข้า</th><th>ออก</th><th>รถ</th></tr></thead>
-            <tbody>
-            @foreach (var v in Model)
-            {
-                <tr>
-                    <td>@v.VisitNumber</td>
-                    <td>@v.Visitor.FullName</td>
-                    <td>@v.VisitorType.Name</td>
-                    <td>@v.HostEmployee.FullName</td>
-                    <td>@v.CheckInAt?.ToString("dd/MM HH:mm")</td>
-                    <td>@v.CheckOutAt?.ToString("dd/MM HH:mm")</td>
-                    <td>@v.VehiclePlate</td>
-                </tr>
-            }
-            </tbody>
-        </table>
-    </div>
+    <table id="report-table" class="table table-striped table-hover align-middle w-100">
+        <thead>
+        <tr>
+            <th>ลำดับ</th>
+            <th>รหัส</th>
+            <th>ชื่อผู้มาติดต่อ</th>
+            <th>ทะเบียนรถ</th>
+            <th>ประเภท</th>
+            <th>มาหา</th>
+            <th>เข้า</th>
+            <th>ออก</th>
+        </tr>
+        </thead>
+        <tbody>
+        @foreach (var v in Model)
+        {
+            <tr>
+                <td>@(++seq)</td>
+                <td class="text-nowrap">@v.VisitNumber</td>
+                <td>@v.Visitor.FullName</td>
+                <td class="text-nowrap">@(string.IsNullOrWhiteSpace(v.VehiclePlate) ? "—" : v.VehiclePlate)</td>
+                <td>@v.VisitorType.Name</td>
+                <td>@v.HostEmployee.FullName</td>
+                <td class="text-nowrap">@(v.CheckInAt?.ToString("dd/MM HH:mm") ?? "—")</td>
+                <td class="text-nowrap">@(v.CheckOutAt?.ToString("dd/MM HH:mm") ?? "—")</td>
+            </tr>
+        }
+        </tbody>
+    </table>
 </div>
+
+@section Styles {
+    <link rel="stylesheet" href="~/lib/datatables/dataTables.bootstrap5.min.css" asp-append-version="true" />
+}
+
+@section Scripts {
+    <script src="~/lib/datatables/jquery.dataTables.min.js" asp-append-version="true"></script>
+    <script src="~/lib/datatables/dataTables.bootstrap5.min.js" asp-append-version="true"></script>
+    <script src="~/js/reports.js" asp-append-version="true"></script>
+}

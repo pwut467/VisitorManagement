@@ -38,26 +38,28 @@ public class ReportsController : Controller
 
         using var workbook = new XLWorkbook();
         var sheet = workbook.Worksheets.Add("ผู้มาติดต่อ");
-        var headers = new[] { "รหัส", "ชื่อผู้มาติดต่อ", "เลขบัตร", "หน่วยงาน", "ประเภท", "วัตถุประสงค์", "ผู้ต้องการพบ", "เข้า", "ออก", "รถ", "สถานะ" };
+        var headers = new[] { "ลำดับ", "รหัส", "ชื่อผู้มาติดต่อ", "ทะเบียนรถ", "เลขบัตร", "หน่วยงาน", "ประเภท", "วัตถุประสงค์", "ผู้ต้องการพบ", "เข้า", "ออก", "สถานะ" };
         for (var i = 0; i < headers.Length; i++)
         {
             sheet.Cell(1, i + 1).Value = headers[i];
         }
 
         var row = 2;
+        var seq = 1;
         foreach (var v in list)
         {
-            sheet.Cell(row, 1).Value = v.VisitNumber;
-            sheet.Cell(row, 2).Value = v.Visitor.FullName;
-            sheet.Cell(row, 3).Value = ThaiNationalId.Mask(v.Visitor.NationalId);
-            sheet.Cell(row, 4).Value = v.CompanyName ?? "";
-            sheet.Cell(row, 5).Value = v.VisitorType.Name;
-            sheet.Cell(row, 6).Value = v.VisitPurpose.Name;
-            sheet.Cell(row, 7).Value = v.HostEmployee.FullName;
-            sheet.Cell(row, 8).Value = v.CheckInAt?.ToString("yyyy-MM-dd HH:mm") ?? "";
-            sheet.Cell(row, 9).Value = v.CheckOutAt?.ToString("yyyy-MM-dd HH:mm") ?? "";
-            sheet.Cell(row, 10).Value = string.IsNullOrWhiteSpace(v.VehiclePlate) ? "" : $"{v.VehicleType} {v.VehiclePlate}".Trim();
-            sheet.Cell(row, 11).Value = v.Status.ToString();
+            sheet.Cell(row, 1).Value = seq++;
+            sheet.Cell(row, 2).Value = v.VisitNumber;
+            sheet.Cell(row, 3).Value = v.Visitor.FullName;
+            sheet.Cell(row, 4).Value = string.IsNullOrWhiteSpace(v.VehiclePlate) ? "" : v.VehiclePlate;
+            sheet.Cell(row, 5).Value = ThaiNationalId.Mask(v.Visitor.NationalId);
+            sheet.Cell(row, 6).Value = v.CompanyName ?? "";
+            sheet.Cell(row, 7).Value = v.VisitorType.Name;
+            sheet.Cell(row, 8).Value = v.VisitPurpose.Name;
+            sheet.Cell(row, 9).Value = v.HostEmployee.FullName;
+            sheet.Cell(row, 10).Value = v.CheckInAt?.ToString("yyyy-MM-dd HH:mm") ?? "";
+            sheet.Cell(row, 11).Value = v.CheckOutAt?.ToString("yyyy-MM-dd HH:mm") ?? "";
+            sheet.Cell(row, 12).Value = v.Status.ToString();
             row++;
         }
 
