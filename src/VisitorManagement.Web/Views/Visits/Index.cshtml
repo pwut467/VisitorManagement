@@ -15,10 +15,8 @@
             <label class="form-label">สถานะ</label>
             <select name="Status" class="form-select">
                 <option value="">ทั้งหมด</option>
-                @foreach (VisitStatus s in Enum.GetValues(typeof(VisitStatus)))
-                {
-                    <option value="@s" selected="@(filter.Status == s)">@s</option>
-                }
+                <option value="@VisitStatus.CheckedIn" @(filter.Status == VisitStatus.CheckedIn ? "selected" : null)>CheckedIn</option>
+                <option value="@VisitStatus.CheckedOut" @(filter.Status == VisitStatus.CheckedOut ? "selected" : null)>CheckedOut</option>
             </select>
         </div>
         <div class="col-md-2">
@@ -38,10 +36,10 @@
 
 <div class="card vm-card p-3">
     <div class="table-responsive">
-        <table class="table align-middle">
+        <table class="table table-striped table-hover align-middle mb-0">
             <thead>
             <tr>
-                <th>รหัส</th>
+                <th>รหัสเอกสาร</th>
                 <th>ผู้มาติดต่อ</th>
                 <th>ประเภท</th>
                 <th>มาหา</th>
@@ -55,7 +53,9 @@
             @foreach (var v in Model)
             {
                 <tr>
-                    <td class="fw-semibold">@v.VisitNumber</td>
+                    <td class="fw-semibold text-nowrap">
+                        <a asp-action="Details" asp-route-id="@v.Id" asp-route-returnUrl="@here">@v.VisitNumber</a>
+                    </td>
                     <td>@v.Visitor.FullName<br /><span class="small text-muted">@v.CompanyName</span></td>
                     <td>@v.VisitorType.Name</td>
                     <td>@v.HostEmployee.FullName</td>
@@ -63,10 +63,14 @@
                     <td>@v.CheckOutAt?.ToString("dd/MM HH:mm")</td>
                     <td><span class="badge bg-secondary">@v.Status</span></td>
                     <td class="text-nowrap">
-                        <a asp-action="Details" asp-route-id="@v.Id" asp-route-returnUrl="@here">เปิด</a>
-                        <a asp-action="Badge" asp-route-id="@v.Id" asp-route-returnUrl="@here">พิมพ์ซ้ำ</a>
+                        <a class="btn btn-sm btn-outline-primary" asp-action="Details" asp-route-id="@v.Id" asp-route-returnUrl="@here">เปิด</a>
+                        <a class="btn btn-sm btn-outline-secondary" asp-action="Badge" asp-route-id="@v.Id" asp-route-returnUrl="@here">พิมพ์ซ้ำ</a>
                     </td>
                 </tr>
+            }
+            @if (!Model.Any())
+            {
+                <tr><td colspan="8" class="text-muted">ไม่พบรายการ</td></tr>
             }
             </tbody>
         </table>

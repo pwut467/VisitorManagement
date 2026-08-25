@@ -276,6 +276,16 @@ body {
   font-weight: 600;
 }
 
+.table-striped > tbody > tr:nth-of-type(odd) > * {
+  --bs-table-accent-bg: #f1f5f9;
+  background-color: #f1f5f9;
+}
+
+.table-hover > tbody > tr:hover > * {
+  --bs-table-accent-bg: #e6fffa;
+  background-color: #e6fffa;
+}
+
 .overstay {
   background: #fff1f2 !important;
 }
