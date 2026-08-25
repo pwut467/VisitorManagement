@@ -2,6 +2,7 @@
 @{
     ViewData["Title"] = "ผู้ที่อยู่ในพื้นที่";
     var now = (DateTime)ViewBag.Now;
+    var here = Context.Request.Path + Context.Request.QueryString;
 }
 
 <div class="card vm-card p-3">
@@ -34,8 +35,9 @@
                     <td>@v.CheckInAt?.ToString("HH:mm")</td>
                     <td>@v.ExpectedCheckoutAt?.ToString("HH:mm")</td>
                     <td class="text-nowrap">
-                        <a class="btn btn-sm btn-teal" asp-controller="CheckOut" asp-action="Index" asp-route-code="@v.VisitNumber">Check-out</a>
-                        <a class="btn btn-sm btn-outline-secondary" asp-action="Badge" asp-route-id="@v.Id">พิมพ์ซ้ำ</a>
+                        <a class="btn btn-sm btn-teal" asp-controller="CheckOut" asp-action="Index" asp-route-code="@v.VisitNumber" asp-route-returnUrl="@here">Check-out</a>
+                        <a class="btn btn-sm btn-outline-secondary" asp-action="Badge" asp-route-id="@v.Id" asp-route-returnUrl="@here">พิมพ์ซ้ำ</a>
+                        <a class="btn btn-sm btn-outline-primary" asp-action="Details" asp-route-id="@v.Id" asp-route-returnUrl="@here">รายละเอียด</a>
                     </td>
                 </tr>
             }

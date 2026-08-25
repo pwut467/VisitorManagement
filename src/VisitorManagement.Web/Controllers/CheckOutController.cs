@@ -22,20 +22,22 @@ public class CheckOutController : Controller
     }
 
     [HttpGet]
-    public async Task<IActionResult> Index(string? code)
+    public async Task<IActionResult> Index(string? code, string? returnUrl)
     {
         ViewBag.Gates = await LoadGatesAsync(null);
         ViewBag.Code = code;
+        ViewBag.ReturnUrl = LocalReturnUrl.IsUsable(returnUrl, Url.IsLocalUrl) ? returnUrl : null;
         return View();
     }
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Index(string code, int? gateOutId, string? notes)
+    public async Task<IActionResult> Index(string code, int? gateOutId, string? notes, string? returnUrl)
     {
         gateOutId ??= await DefaultGateIdAsync();
         ViewBag.Gates = await LoadGatesAsync(gateOutId);
         ViewBag.Code = code;
+        ViewBag.ReturnUrl = LocalReturnUrl.IsUsable(returnUrl, Url.IsLocalUrl) ? returnUrl : null;
 
         if (string.IsNullOrWhiteSpace(code))
         {
@@ -52,7 +54,7 @@ public class CheckOutController : Controller
         }
 
         TempData["Success"] = $"Check-out {result.Visit!.VisitNumber} เวลา {result.Visit.CheckOutAt:HH:mm} เรียบร้อย";
-        return RedirectToAction("Details", "Visits", new { id = result.Visit.Id });
+        return RedirectToAction("Details", "Visits", new { id = result.Visit.Id, returnUrl = ViewBag.ReturnUrl });
     }
 
     [HttpGet]

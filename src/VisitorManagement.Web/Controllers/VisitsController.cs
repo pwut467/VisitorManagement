@@ -91,7 +91,7 @@ public class VisitsController : Controller
         return View(list);
     }
 
-    public async Task<IActionResult> Details(int id)
+    public async Task<IActionResult> Details(int id, string? returnUrl)
     {
         var visit = await LoadAsync(id);
         if (visit is null)
@@ -99,16 +99,13 @@ public class VisitsController : Controller
             return NotFound();
         }
 
-        if (visit.Status == VisitStatus.CheckedIn)
-        {
-            ViewBag.Qr = _qr.DataUrl("VISIT|" + visit.VisitCode);
-        }
+        ViewBag.ReturnUrl = ResolveReturnUrl(returnUrl);
         ViewBag.Now = TimeHelper.Now;
         return View(visit);
     }
 
     [Authorize(Roles = AppRoles.FrontDesk)]
-    public async Task<IActionResult> Badge(int id, string? autoprint = null)
+    public async Task<IActionResult> Badge(int id, string? autoprint = null, string? returnUrl = null)
     {
         var visit = await LoadAsync(id);
         if (visit is null)
@@ -122,13 +119,14 @@ public class VisitsController : Controller
         ViewBag.BarcodeSvg = Code128Barcode.Svg(visit.VisitNumber);
         ViewBag.Company = await _db.CompanyProfiles.FirstAsync();
         ViewBag.AutoPrint = VisitorManagement.Web.ViewFlag.IsOn(autoprint);
+        ViewBag.ReturnUrl = LocalReturnUrl.IsUsable(returnUrl, Url.IsLocalUrl) ? returnUrl : null;
         return View(visit);
     }
 
     [Authorize(Roles = AppRoles.FrontDesk)]
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Cancel(int id, string? reason)
+    public async Task<IActionResult> Cancel(int id, string? reason, string? returnUrl)
     {
         var visit = await _db.Visits.FindAsync(id);
         if (visit is null)
@@ -139,14 +137,14 @@ public class VisitsController : Controller
         if (visit.Status == VisitStatus.CheckedOut)
         {
             TempData["Error"] = "รายการนี้ออกจากพื้นที่แล้ว ไม่สามารถยกเลิกได้";
-            return RedirectToAction(nameof(Details), new { id });
+            return RedirectToAction(nameof(Details), new { id, returnUrl });
         }
 
         visit.Status = VisitStatus.Cancelled;
         visit.Notes = string.IsNullOrWhiteSpace(visit.Notes) ? reason : visit.Notes + " | ยกเลิก: " + reason;
         await _db.SaveChangesAsync();
         TempData["Success"] = "ยกเลิกรายการแล้ว";
-        return RedirectToAction(nameof(Details), new { id });
+        return RedirectToAction(nameof(Details), new { id, returnUrl });
     }
 
     public IActionResult Qr(string code)
@@ -166,4 +164,11 @@ public class VisitsController : Controller
             .Include(v => v.RegisteredByUser)
             .Include(v => v.CheckedOutByUser)
             .FirstOrDefaultAsync(v => v.Id == id);
+
+    private string ResolveReturnUrl(string? returnUrl) =>
+        LocalReturnUrl.Resolve(
+            returnUrl,
+            Request.Headers.Referer.ToString(),
+            Url.IsLocalUrl,
+            Url.Action(nameof(Index)) ?? "/Visits");
 }

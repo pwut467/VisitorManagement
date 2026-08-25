@@ -2,6 +2,7 @@
 @{
     ViewData["Title"] = "ประวัติการเข้าพบ";
     var filter = ViewBag.Filter as VisitListFilter ?? new VisitListFilter();
+    var here = Context.Request.Path + Context.Request.QueryString;
 }
 
 <div class="card vm-card p-3 mb-3">
@@ -62,8 +63,8 @@
                     <td>@v.CheckOutAt?.ToString("dd/MM HH:mm")</td>
                     <td><span class="badge bg-secondary">@v.Status</span></td>
                     <td class="text-nowrap">
-                        <a asp-action="Details" asp-route-id="@v.Id">เปิด</a>
-                        <a asp-action="Badge" asp-route-id="@v.Id">พิมพ์ซ้ำ</a>
+                        <a asp-action="Details" asp-route-id="@v.Id" asp-route-returnUrl="@here">เปิด</a>
+                        <a asp-action="Badge" asp-route-id="@v.Id" asp-route-returnUrl="@here">พิมพ์ซ้ำ</a>
                     </td>
                 </tr>
             }

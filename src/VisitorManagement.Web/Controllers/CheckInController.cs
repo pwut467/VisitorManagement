@@ -92,7 +92,7 @@ public class CheckInController : Controller
 
         if (model.SubmitAction == "preregister")
         {
-            return RedirectToAction("Details", "Visits", new { id = result.Visit!.Id });
+            return RedirectToAction("Details", "Visits", new { id = result.Visit!.Id, returnUrl = Url.Action(nameof(Index)) });
         }
 
         var autoPrint = await _db.CompanyProfiles

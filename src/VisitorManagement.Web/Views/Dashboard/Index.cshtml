@@ -2,6 +2,7 @@
 @{
     ViewData["Title"] = "แดชบอร์ด";
     var maxHour = Math.Max(1, Model.Hourly.MaxBy(x => x.Count)?.Count ?? 1);
+    var here = Context.Request.Path + Context.Request.QueryString;
 }
 
 <div class="row g-3 mb-3">
@@ -61,8 +62,8 @@
                             <td>@v.HostEmployee.FullName</td>
                             <td>@v.CheckInAt?.ToString("HH:mm")</td>
                             <td class="text-nowrap">
-                                <a class="btn btn-sm btn-outline-primary" asp-controller="Visits" asp-action="Details" asp-route-id="@v.Id">รายละเอียด</a>
-                                <a class="btn btn-sm btn-outline-secondary" asp-controller="Visits" asp-action="Badge" asp-route-id="@v.Id">พิมพ์ซ้ำ</a>
+                                <a class="btn btn-sm btn-outline-primary" asp-controller="Visits" asp-action="Details" asp-route-id="@v.Id" asp-route-returnUrl="@here">รายละเอียด</a>
+                                <a class="btn btn-sm btn-outline-secondary" asp-controller="Visits" asp-action="Badge" asp-route-id="@v.Id" asp-route-returnUrl="@here">พิมพ์ซ้ำ</a>
                             </td>
                         </tr>
                     }
@@ -98,7 +99,7 @@
             {
                 <div class="recent-row py-2">
                     <div class="d-flex justify-content-between gap-2">
-                        <a asp-controller="Visits" asp-action="Details" asp-route-id="@v.Id">@v.VisitNumber</a>
+                        <a asp-controller="Visits" asp-action="Details" asp-route-id="@v.Id" asp-route-returnUrl="@here">@v.VisitNumber</a>
                         <span class="status-pill status-@v.Status.ToString().ToLowerInvariant()">@v.Status</span>
                     </div>
                     <div class="small text-muted">@v.Visitor.FullName</div>
