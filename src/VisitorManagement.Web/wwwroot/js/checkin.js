@@ -11,6 +11,47 @@
   const agentUrl = (document.getElementById('card-reader-config')?.dataset.url || 'http://127.0.0.1:5001').replace(/\/$/, '');
   let stream = null;
   let waitingForCard = false;
+  const nationalIdHidden = document.getElementById('NationalId');
+  const nationalIdDisplay = document.getElementById('NationalIdDisplay');
+
+  function digitsOnly(value) {
+    return (value || '').replace(/\D/g, '');
+  }
+
+  function isMaskedNationalId(value) {
+    return /^\d-xxxx-xxxxx-\d{2}-\d$/.test(value || '');
+  }
+
+  function maskNationalId(value) {
+    const id = digitsOnly(value);
+    if (id.length !== 13) {
+      return value || '';
+    }
+    return id[0] + '-xxxx-xxxxx-' + id.slice(10, 12) + '-' + id[12];
+  }
+
+  function setNationalId(raw, options) {
+    const id = digitsOnly(raw).slice(0, 13);
+    if (!nationalIdHidden || !nationalIdDisplay) return id;
+    nationalIdHidden.value = id;
+    if (id.length === 13) {
+      nationalIdDisplay.value = maskNationalId(id);
+      if (options && options.lookup) {
+        lookupVisitor(options.lookup === true ? undefined : options.lookup);
+      }
+    } else {
+      nationalIdDisplay.value = id;
+    }
+    return id;
+  }
+
+  function syncNationalIdFromDisplay() {
+    if (!nationalIdDisplay) return '';
+    if (isMaskedNationalId(nationalIdDisplay.value) && digitsOnly(nationalIdHidden?.value).length === 13) {
+      return nationalIdHidden.value;
+    }
+    return setNationalId(nationalIdDisplay.value);
+  }
 
   function showAlert(type, message) {
     alertBox.className = 'alert alert-' + type;
@@ -55,7 +96,10 @@
 
   async function lookupVisitor(options) {
     const keepIdentity = options && options.keepIdentity;
-    const id = document.getElementById('NationalId').value;
+    const id = digitsOnly(nationalIdHidden?.value || '');
+    if (id.length !== 13) {
+      return;
+    }
     const res = await fetch('/api/visitors/by-national-id?id=' + encodeURIComponent(id));
     const data = await res.json();
     if (!data.valid) {
@@ -80,10 +124,31 @@
     }
   }
 
-  document.getElementById('btn-lookup')?.addEventListener('click', () => lookupVisitor());
-  document.getElementById('NationalId')?.addEventListener('blur', function () {
-    if (this.value.length === 13) lookupVisitor();
+  document.getElementById('btn-lookup')?.addEventListener('click', () => {
+    syncNationalIdFromDisplay();
+    lookupVisitor();
   });
+  nationalIdDisplay?.addEventListener('keydown', (event) => {
+    if (!isMaskedNationalId(nationalIdDisplay.value)) return;
+    if (event.key === 'Backspace' || event.key === 'Delete') {
+      event.preventDefault();
+      setNationalId('');
+    }
+  });
+  nationalIdDisplay?.addEventListener('input', () => {
+    if (isMaskedNationalId(nationalIdDisplay.value)) return;
+    const id = setNationalId(nationalIdDisplay.value);
+    if (id.length === 13) {
+      lookupVisitor();
+    }
+  });
+  nationalIdDisplay?.addEventListener('blur', () => {
+    const id = syncNationalIdFromDisplay();
+    if (id.length === 13) lookupVisitor();
+  });
+  if (digitsOnly(nationalIdHidden?.value).length === 13) {
+    setNationalId(nationalIdHidden.value);
+  }
 
   async function refreshReaderStatus() {
     try {
@@ -163,7 +228,7 @@
   }
 
   function fillCard(card) {
-    document.getElementById('NationalId').value = card.nationalId || card.NationalId || '';
+    setNationalId(card.nationalId || card.NationalId || '');
     ensureTitleOption(card.title || card.Title || 'นาย');
     document.getElementById('FirstName').value = card.firstName || card.FirstName || '';
     document.getElementById('LastName').value = card.lastName || card.LastName || '';
@@ -179,6 +244,9 @@
     }
   }
 
+  form.addEventListener('submit', () => {
+    syncNationalIdFromDisplay();
+  });
   document.getElementById('btn-checkin')?.addEventListener('click', () => {
     document.getElementById('SubmitAction').value = 'checkin';
   });

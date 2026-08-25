@@ -25,6 +25,8 @@ public class ThaiNationalIdTests
     {
         Assert.Equal("3101700123452", ThaiNationalId.Normalize("3-1017-00123-45-2"));
         Assert.Equal("3-xxxx-xxxxx-45-2", ThaiNationalId.Mask("3101700123452"));
+        Assert.Equal("1-xxxx-xxxxx-78-0", ThaiNationalId.Mask("1103700156780"));
+        Assert.Equal("3-xxxx-xxxxx-45-2", ThaiNationalId.Mask("3-1017-00123-45-2"));
     }
 }
 
