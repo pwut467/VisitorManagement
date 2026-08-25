@@ -8,13 +8,13 @@
 </div>
 <div class="card vm-card p-3">
     <table class="table">
-        <thead><tr><th>ชื่อ</th><th>อีเมล</th><th>สิทธิ์</th><th>สถานะ</th><th></th></tr></thead>
+        <thead><tr><th>ชื่อ</th><th>ชื่อผู้ใช้</th><th>สิทธิ์</th><th>สถานะ</th><th></th></tr></thead>
         <tbody>
         @foreach (var row in Model)
         {
             <tr>
                 <td>@row.User.FullName</td>
-                <td>@row.User.Email</td>
+                <td>@row.User.UserName</td>
                 <td>@string.Join(", ", row.Roles)</td>
                 <td>@(row.User.IsActive ? "ใช้งาน" : "ปิด")</td>
                 <td>

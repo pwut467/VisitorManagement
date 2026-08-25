@@ -123,14 +123,12 @@ dotnet run
 
 ### บัญชีเริ่มต้น
 
-| อีเมล | รหัสผ่าน | สิทธิ์ |
+| ชื่อผู้ใช้ | รหัสผ่าน | สิทธิ์ |
 |---|---|---|
-| `admin@company.local` | `Admin@12345` | Admin |
-| `security@company.local` | `Security@12345` | รปภ. |
-| `reception@company.local` | `Reception@12345` | Reception |
-| `host@company.local` | `Host@12345` | Host |
+| `SKAdmin` | `123456` | Admin |
+| `9641` | `123456` | Security |
 
-**ควรเปลี่ยนรหัสผ่านทันทีในงานจริง**
+เปิดแอปครั้งแรกจะล้างผู้ใช้เดิมทั้งหมด แล้วสร้างสองบัญชีนี้ (รหัสผ่านทุกบัญชีเป็น `123456`)
 
 ## การพิมพ์บัตร Thermal
 

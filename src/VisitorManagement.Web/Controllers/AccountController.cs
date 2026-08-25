@@ -41,17 +41,19 @@ public class AccountController : Controller
             return View(model);
         }
 
-        var user = await _userManager.FindByEmailAsync(model.Email);
+        var userName = model.UserName.Trim();
+        var user = await _userManager.FindByNameAsync(userName)
+            ?? await _userManager.FindByEmailAsync(userName);
         if (user is null || !user.IsActive)
         {
-            ModelState.AddModelError(string.Empty, "อีเมลหรือรหัสผ่านไม่ถูกต้อง");
+            ModelState.AddModelError(string.Empty, "ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง");
             return View(model);
         }
 
         var result = await _signInManager.PasswordSignInAsync(user, model.Password, model.RememberMe, lockoutOnFailure: true);
         if (!result.Succeeded)
         {
-            ModelState.AddModelError(string.Empty, "อีเมลหรือรหัสผ่านไม่ถูกต้อง");
+            ModelState.AddModelError(string.Empty, "ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง");
             return View(model);
         }
 

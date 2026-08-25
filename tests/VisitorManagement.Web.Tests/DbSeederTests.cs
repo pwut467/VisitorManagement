@@ -9,14 +9,22 @@ namespace VisitorManagement.Web.Tests;
 public class DbSeederTests
 {
     [Fact]
-    public async Task SeedAsyncCreatesMasterDataAndDemoUsers()
+    public async Task SeedAsyncReplacesUsersWithOfficialAccounts()
     {
         var services = new ServiceCollection();
         var databaseName = Guid.NewGuid().ToString();
         services.AddLogging();
         services.AddDbContext<AppDbContext>(options =>
             options.UseInMemoryDatabase(databaseName));
-        services.AddIdentity<ApplicationUser, IdentityRole>()
+        services.AddIdentity<ApplicationUser, IdentityRole>(options =>
+            {
+                options.Password.RequiredLength = 6;
+                options.Password.RequireDigit = false;
+                options.Password.RequireLowercase = false;
+                options.Password.RequireUppercase = false;
+                options.Password.RequireNonAlphanumeric = false;
+                options.User.RequireUniqueEmail = false;
+            })
             .AddEntityFrameworkStores<AppDbContext>()
             .AddDefaultTokenProviders();
 
@@ -28,12 +36,18 @@ public class DbSeederTests
         var users = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
 
         Assert.Equal(5, await db.Employees.CountAsync());
-        Assert.True(await db.Employees.AnyAsync(e => e.EmployeeCode == "5300162"));
-        Assert.NotNull(await users.FindByEmailAsync("admin@company.local"));
-        Assert.NotNull(await users.FindByEmailAsync("host@company.local"));
+        Assert.Equal(2, await users.Users.CountAsync());
 
-        var host = await db.Employees.FirstAsync(e => e.EmployeeCode == "5300162");
-        Assert.False(string.IsNullOrEmpty(host.UserId));
+        var admin = await users.FindByNameAsync("SKAdmin");
+        var security = await users.FindByNameAsync("9641");
+        Assert.NotNull(admin);
+        Assert.NotNull(security);
+        Assert.True(await users.CheckPasswordAsync(admin, "123456"));
+        Assert.True(await users.CheckPasswordAsync(security, "123456"));
+        Assert.True(await users.IsInRoleAsync(admin, AppRoles.Admin));
+        Assert.True(await users.IsInRoleAsync(security, AppRoles.Security));
+        Assert.Null(await users.FindByNameAsync("admin@company.local"));
+        Assert.True(await db.Employees.AllAsync(e => e.UserId == null));
         Assert.Equal(1, await db.Visits.CountAsync());
     }
 }

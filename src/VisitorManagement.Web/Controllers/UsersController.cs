@@ -19,7 +19,7 @@ public class UsersController : Controller
 
     public async Task<IActionResult> Index()
     {
-        var users = await _users.Users.OrderBy(u => u.Email).ToListAsync();
+        var users = await _users.Users.OrderBy(u => u.UserName).ToListAsync();
         var rows = new List<(ApplicationUser User, IList<string> Roles)>();
         foreach (var u in users)
         {

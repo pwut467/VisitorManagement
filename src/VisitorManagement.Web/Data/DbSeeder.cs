@@ -103,19 +103,7 @@ public static class DbSeeder
             await db.SaveChangesAsync();
         }
 
-        await EnsureUserAsync(userManager, "admin@company.local", "Admin@12345", "ผู้ดูแลระบบ", AppRoles.Admin);
-        await EnsureUserAsync(userManager, "security@company.local", "Security@12345", "รปภ. ประตูใหญ่", AppRoles.Security);
-        await EnsureUserAsync(userManager, "reception@company.local", "Reception@12345", "เจ้าหน้าที่ต้อนรับ", AppRoles.Reception);
-
-        var hostEmp = await db.Employees.FirstOrDefaultAsync(e => e.EmployeeCode == "5300162")
-            ?? await db.Employees.FirstOrDefaultAsync(e => e.EmployeeCode == "E002")
-            ?? await db.Employees.FirstAsync();
-        var hostUser = await EnsureUserAsync(userManager, "host@company.local", "Host@12345", hostEmp.FullName, AppRoles.Host);
-        if (hostEmp.UserId != hostUser.Id)
-        {
-            hostEmp.UserId = hostUser.Id;
-            await db.SaveChangesAsync();
-        }
+        await ResetUsersAsync(db, userManager);
 
         if (!await db.BlacklistEntries.AnyAsync())
         {
@@ -173,20 +161,52 @@ public static class DbSeeder
         }
     }
 
-    private static async Task<ApplicationUser> EnsureUserAsync(
+    private static async Task ResetUsersAsync(AppDbContext db, UserManager<ApplicationUser> userManager)
+    {
+        const string defaultPassword = "123456";
+
+        foreach (var emp in await db.Employees.Where(e => e.UserId != null).ToListAsync())
+        {
+            emp.UserId = null;
+        }
+
+        foreach (var visit in await db.Visits
+                     .Where(v => v.RegisteredByUserId != null || v.CheckedOutByUserId != null)
+                     .ToListAsync())
+        {
+            visit.RegisteredByUserId = null;
+            visit.CheckedOutByUserId = null;
+        }
+
+        await db.SaveChangesAsync();
+
+        foreach (var user in userManager.Users.ToList())
+        {
+            var result = await userManager.DeleteAsync(user);
+            if (!result.Succeeded)
+            {
+                throw new InvalidOperationException(string.Join("; ", result.Errors.Select(e => e.Description)));
+            }
+        }
+
+        await EnsureUserAsync(userManager, "SKAdmin", defaultPassword, "ผู้ดูแลระบบ", AppRoles.Admin);
+        await EnsureUserAsync(userManager, "9641", defaultPassword, "รปภ.", AppRoles.Security);
+    }
+
+    private static async Task EnsureUserAsync(
         UserManager<ApplicationUser> userManager,
-        string email,
+        string userName,
         string password,
         string fullName,
         string role)
     {
-        var user = await userManager.FindByEmailAsync(email);
+        var user = await userManager.FindByNameAsync(userName);
         if (user is null)
         {
             user = new ApplicationUser
             {
-                UserName = email,
-                Email = email,
+                UserName = userName,
+                Email = null,
                 EmailConfirmed = true,
                 FullName = fullName,
                 IsActive = true
@@ -197,12 +217,23 @@ public static class DbSeeder
                 throw new InvalidOperationException(string.Join("; ", result.Errors.Select(e => e.Description)));
             }
         }
+        else
+        {
+            var token = await userManager.GeneratePasswordResetTokenAsync(user);
+            var reset = await userManager.ResetPasswordAsync(user, token, password);
+            if (!reset.Succeeded)
+            {
+                throw new InvalidOperationException(string.Join("; ", reset.Errors.Select(e => e.Description)));
+            }
+
+            user.FullName = fullName;
+            user.IsActive = true;
+            await userManager.UpdateAsync(user);
+        }
 
         if (!await userManager.IsInRoleAsync(user, role))
         {
             await userManager.AddToRoleAsync(user, role);
         }
-
-        return user;
     }
 }
