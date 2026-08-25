@@ -66,13 +66,51 @@ QR บนบัตรมี payload `VISIT|{VisitCode}` เพื่อให้
 ## เทคโนโลยี
 
 - ASP.NET Core 8 MVC, Identity (cookie)
-- EF Core + **SQL Server** (โปรดักชัน) หรือ **SQLite** (Development)
+- EF Core + **SQL Server Express** (ฐานข้อมูล `VisitorManagment`)
 - Bootstrap 5 + IBM Plex Sans Thai
 - QRCoder, กล้องเบราว์เซอร์ (`getUserMedia`), html5-qrcode
 
-## วิธีรัน
+## ฐานข้อมูล SQL Server Express
 
-### 1) Development (SQLite ไม่ต้องมี SQL Server)
+ค่าเริ่มต้นชี้ไปที่ instance **SQLEXPRESS** ชื่อฐาน **VisitorManagment**
+
+```
+Server=.\SQLEXPRESS;Database=VisitorManagment;Trusted_Connection=True;TrustServerCertificate=True;MultipleActiveResultSets=True
+```
+
+รอบแรกที่เปิดแอป ระบบจะ:
+
+1. `dotnet ef database migrate` ผ่าน `Database.Migrate()` — สร้างฐาน `VisitorManagment` และตารางทั้งหมด
+2. seed ข้อมูลหลัก (แผนก, พนักงาน, ประตู, ประเภทผู้มาติดต่อ, ผู้ใช้ทดลอง, รายการเข้าพบตัวอย่าง)
+
+หรือรัน migrate เองก่อนเปิดเว็บ:
+
+```bash
+dotnet tool restore
+dotnet ef database update --project src/VisitorManagement.Web
+```
+
+ถ้าใช้ SQL Authentication แทน Windows Auth ให้เปลี่ยน connection string เป็น:
+
+```
+Server=.\SQLEXPRESS;Database=VisitorManagment;User Id=sa;Password=รหัสผ่านของคุณ;TrustServerCertificate=True;MultipleActiveResultSets=True
+```
+
+สคริปต์ SQL สำรองอยู่ที่ `src/VisitorManagement.Web/Data/Migrations/VisitorManagment.sql` (เปิดใน SSMS แล้วรันบน SQLEXPRESS ได้)
+
+### Docker (edition Express)
+
+```bash
+docker compose up -d
+```
+
+แล้วตั้ง connection string เป็น:
+
+```
+Server=localhost,1433;Database=VisitorManagment;User Id=sa;Password=Your_password123;TrustServerCertificate=True;MultipleActiveResultSets=True
+```
+
+## วิธีรัน
 
 ```bash
 cd src/VisitorManagement.Web
@@ -81,28 +119,7 @@ dotnet run
 
 เปิด `http://localhost:5088`
 
-`appsettings.Development.json` ตั้ง `Database:Provider` เป็น `Sqlite`
-
-### 2) SQL Server ด้วย Docker
-
-```bash
-docker compose up -d
-```
-
-แล้วตั้งใน `appsettings.json`:
-
-```json
-"Database": { "Provider": "SqlServer" },
-"ConnectionStrings": {
-  "SqlServer": "Server=localhost,1433;Database=VisitorManagement;User Id=sa;Password=Your_password123;TrustServerCertificate=True;MultipleActiveResultSets=True"
-}
-```
-
-```bash
-ASPNETCORE_ENVIRONMENT=Production dotnet run --project src/VisitorManagement.Web
-```
-
-รอบแรกระบบใช้ `EnsureCreated` สร้าง schema และ seed ข้อมูลตัวอย่าง
+ต้องมี SQL Server Express รันอยู่ และบัญชี Windows (หรือ sa) มีสิทธิ์สร้างฐานข้อมูล
 
 ### บัญชีเริ่มต้น
 

@@ -19,12 +19,9 @@ builder.Services.AddDbContext<AppDbContext>(options =>
         case "InMemory":
             options.UseInMemoryDatabase("VisitorManagement");
             break;
-        case "Sqlite":
-            options.UseSqlite(builder.Configuration.GetConnectionString("Sqlite")
-                              ?? "Data Source=visitormanagement.db");
-            break;
         default:
-            options.UseSqlServer(builder.Configuration.GetConnectionString("SqlServer"));
+            options.UseSqlServer(builder.Configuration.GetConnectionString("SqlServer")
+                ?? @"Server=.\SQLEXPRESS;Database=VisitorManagment;Trusted_Connection=True;TrustServerCertificate=True;MultipleActiveResultSets=True");
             break;
     }
 });

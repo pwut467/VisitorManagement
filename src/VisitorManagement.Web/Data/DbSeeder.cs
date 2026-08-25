@@ -14,7 +14,14 @@ public static class DbSeeder
         var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
         var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
 
-        await db.Database.EnsureCreatedAsync();
+        if (db.Database.IsSqlServer())
+        {
+            await db.Database.MigrateAsync();
+        }
+        else
+        {
+            await db.Database.EnsureCreatedAsync();
+        }
 
         foreach (var role in AppRoles.All)
         {
