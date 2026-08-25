@@ -38,10 +38,10 @@
                 <a class="link-accent" asp-controller="Visits" asp-action="OnSite">ดูทั้งหมด</a>
             </div>
             <div class="table-responsive">
-                <table class="table table-dashboard align-middle mb-0">
+                <table class="table table-dashboard table-striped table-hover align-middle mb-0">
                     <thead>
                     <tr>
-                        <th>ลำดับ</th>
+                        <th class="col-seq">ลำดับ</th>
                         <th>บัตร</th>
                         <th>ผู้มาติดต่อ</th>
                         <th>ทะเบียนรถ</th>
@@ -58,7 +58,7 @@
                     @foreach (var v in Model.OnSite)
                     {
                         <tr>
-                            <td>@(++seq)</td>
+                            <td class="col-seq">@(++seq)</td>
                             <td class="fw-semibold text-nowrap">@v.VisitNumber</td>
                             <td>@v.Visitor.FullName<br /><span class="small text-muted">@v.CompanyName</span></td>
                             <td class="text-nowrap">@(string.IsNullOrWhiteSpace(v.VehiclePlate) ? "—" : v.VehiclePlate)</td>

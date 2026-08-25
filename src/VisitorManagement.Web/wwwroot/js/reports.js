@@ -27,7 +27,7 @@ $(function () {
         pageLength: 25,
         lengthMenu: [[10, 25, 50, 100, -1], [10, 25, 50, 100, 'ทั้งหมด']],
         columnDefs: [
-            { targets: 0, orderable: false, searchable: false, width: '4rem' }
+            { targets: 0, orderable: false, searchable: false, width: '4.5rem', className: 'col-seq' }
         ],
         drawCallback: function () {
             const api = this.api();

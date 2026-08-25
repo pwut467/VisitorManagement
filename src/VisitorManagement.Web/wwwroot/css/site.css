@@ -276,6 +276,12 @@ body {
   font-weight: 600;
 }
 
+.col-seq {
+  text-align: center;
+  width: 4.5rem;
+  white-space: nowrap;
+}
+
 .table-striped > tbody > tr:nth-of-type(odd) > * {
   --bs-table-accent-bg: #e8eef5;
   background-color: #e8eef5;
@@ -299,6 +305,11 @@ table.dataTable.table-hover > tbody > tr:hover > * {
   --bs-table-accent-bg: #ccfbf1;
   background-color: #ccfbf1;
   box-shadow: inset 0 0 0 9999px #ccfbf1;
+}
+
+tr.overstay > * {
+  background-color: #fff1f2 !important;
+  box-shadow: inset 0 0 0 9999px #fff1f2 !important;
 }
 
 .dataTables_wrapper .dataTables_length,
