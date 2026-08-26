@@ -17,6 +17,8 @@ document.addEventListener('DOMContentLoaded', () => {
       badge.classList.remove('cloud-online', 'cloud-offline', 'cloud-disabled', 'cloud-pending');
       if (!data.enabled) {
         badge.classList.add('cloud-disabled');
+      } else if (!data.configured) {
+        badge.classList.add('cloud-offline');
       } else if (data.online) {
         badge.classList.add(data.pendingSyncCount > 0 ? 'cloud-pending' : 'cloud-online');
       } else {
@@ -36,7 +38,9 @@ document.addEventListener('DOMContentLoaded', () => {
         if (data.lastCheckedAt) {
           parts.push('ตรวจ ' + data.lastCheckedAt);
         }
-        if (!data.online && data.lastError) {
+        if (!data.configured) {
+          parts.push('ตั้งค่า Username/Password ที่เมนูตั้งค่าบริษัท');
+        } else if (!data.online && data.lastError) {
           parts.push(data.lastError);
         }
         detail.textContent = parts.join(' · ');

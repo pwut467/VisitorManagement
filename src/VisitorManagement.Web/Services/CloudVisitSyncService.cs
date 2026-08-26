@@ -14,60 +14,66 @@ public interface ICloudVisitSyncService
 public sealed class CloudVisitSyncService : ICloudVisitSyncService
 {
     private readonly AppDbContext _local;
-    private readonly IServiceScopeFactory _scopes;
     private readonly ICloudConnectionStatus _status;
-    private readonly CloudOptions _options;
+    private readonly ICloudOptionsProvider _optionsProvider;
     private readonly ILogger<CloudVisitSyncService> _logger;
     private readonly SemaphoreSlim _schemaLock = new(1, 1);
     private bool _schemaReady;
 
     public CloudVisitSyncService(
         AppDbContext local,
-        IServiceScopeFactory scopes,
         ICloudConnectionStatus status,
-        IConfiguration config,
+        ICloudOptionsProvider optionsProvider,
         ILogger<CloudVisitSyncService> logger)
     {
         _local = local;
-        _scopes = scopes;
         _status = status;
-        _options = CloudOptions.From(config);
+        _optionsProvider = optionsProvider;
         _logger = logger;
     }
 
     public async Task<bool> ProbeAsync(CancellationToken cancellationToken = default)
     {
-        if (!_options.Enabled)
+        var options = await _optionsProvider.GetAsync(cancellationToken);
+        if (!options.Enabled)
         {
-            _status.SetHealth(false, "ปิดการซิงก์คลาวด์");
+            _status.SetHealth(false, "ปิดการซิงก์คลาวด์", options);
+            return false;
+        }
+
+        if (!options.IsConfigured)
+        {
+            _status.SetHealth(false, "ยังไม่ได้ตั้งค่า Username/Password ของ Cloud SQL (ไปที่ ตั้งค่าบริษัท)", options);
             return false;
         }
 
         try
         {
-            await using var cloud = CreateCloudContext();
+            await using var cloud = CreateCloudContext(options);
             var ok = await cloud.Database.CanConnectAsync(cancellationToken);
             if (!ok)
             {
-                _status.SetHealth(false, "เชื่อมต่อ Cloud SQL ไม่ได้");
+                _status.SetHealth(false, "เชื่อมต่อ Cloud SQL ไม่ได้", options);
                 return false;
             }
 
             await EnsureCloudSchemaAsync(cloud, cancellationToken);
-            _status.SetHealth(true, null);
+            _status.SetHealth(true, null, options);
             return true;
         }
         catch (Exception ex)
         {
+            var message = CloudOptions.DescribeError(ex);
             _logger.LogWarning(ex, "Cloud SQL health check failed");
-            _status.SetHealth(false, TrimError(ex));
+            _status.SetHealth(false, message, options);
             return false;
         }
     }
 
     public async Task<bool> TrySyncVisitAsync(int visitId, CancellationToken cancellationToken = default)
     {
-        if (!_options.Enabled)
+        var options = await _optionsProvider.GetAsync(cancellationToken);
+        if (!options.Enabled || !options.IsConfigured)
         {
             return false;
         }
@@ -80,11 +86,11 @@ public sealed class CloudVisitSyncService : ICloudVisitSyncService
 
         try
         {
-            await using var cloud = CreateCloudContext();
+            await using var cloud = CreateCloudContext(options);
             if (!await cloud.Database.CanConnectAsync(cancellationToken))
             {
                 await MarkLocalPendingAsync(visit, "เชื่อมต่อ Cloud SQL ไม่ได้", cancellationToken);
-                _status.SetHealth(false, "เชื่อมต่อ Cloud SQL ไม่ได้");
+                _status.SetHealth(false, "เชื่อมต่อ Cloud SQL ไม่ได้", options);
                 return false;
             }
 
@@ -96,22 +102,24 @@ public sealed class CloudVisitSyncService : ICloudVisitSyncService
             visit.CloudSyncedAt = TimeHelper.Now;
             visit.CloudSyncError = null;
             await _local.SaveChangesAsync(cancellationToken);
-            _status.SetHealth(true, null);
+            _status.SetHealth(true, null, options);
             await RefreshPendingCountAsync(cancellationToken);
             return true;
         }
         catch (Exception ex)
         {
+            var message = CloudOptions.DescribeError(ex);
             _logger.LogWarning(ex, "Failed syncing visit {VisitNumber} to cloud", visit.VisitNumber);
-            await MarkLocalPendingAsync(visit, TrimError(ex), cancellationToken);
-            _status.SetHealth(false, TrimError(ex));
+            await MarkLocalPendingAsync(visit, message, cancellationToken);
+            _status.SetHealth(false, message, options);
             return false;
         }
     }
 
     public async Task<int> SyncPendingAsync(CancellationToken cancellationToken = default)
     {
-        if (!_options.Enabled)
+        var options = await _optionsProvider.GetAsync(cancellationToken);
+        if (!options.Enabled || !options.IsConfigured)
         {
             return 0;
         }
@@ -354,19 +362,12 @@ public sealed class CloudVisitSyncService : ICloudVisitSyncService
         }
     }
 
-    private AppDbContext CreateCloudContext()
+    private AppDbContext CreateCloudContext(CloudOptions options)
     {
-        var cs = _options.ConnectionString
+        var cs = options.ConnectionString
             ?? throw new InvalidOperationException("Cloud SQL connection string is not configured.");
-        var options = new DbContextOptionsBuilder<AppDbContext>()
-            .UseSqlServer(cs)
-            .Options;
-        return new AppDbContext(options);
-    }
-
-    private static string TrimError(Exception ex)
-    {
-        var message = ex.GetBaseException().Message;
-        return message.Length <= 400 ? message : message[..400];
+        var builder = new DbContextOptionsBuilder<AppDbContext>()
+            .UseSqlServer(cs);
+        return new AppDbContext(builder.Options);
     }
 }

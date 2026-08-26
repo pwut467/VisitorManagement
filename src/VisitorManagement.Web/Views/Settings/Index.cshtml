@@ -2,8 +2,9 @@
 @{
     ViewData["Title"] = "ตั้งค่าบริษัท / บัตร Visitor";
 }
-<div class="card vm-card p-4" style="max-width:720px">
+<div class="card vm-card p-4 mb-3" style="max-width:760px">
     <form method="post">
+        <h2 class="h5 mb-3">บริษัท / บัตร</h2>
         <div class="mb-3">
             <label asp-for="Name" class="form-label"></label>
             <input asp-for="Name" class="form-control" />
@@ -34,8 +35,75 @@
                 <input class="form-check-input" type="radio" name="AutoPrintBadge" value="false" id="print-preview" @(!Model.AutoPrintBadge ? "checked" : null) />
                 <label class="form-check-label" for="print-preview">แสดงตัวอย่างก่อน (Print Preview)</label>
             </div>
-            <div class="form-text">หลังกดบันทึกเข้า: พิมพ์เลยจะเปิดหน้าต่างพิมพ์ทันที โดยไม่เปิดหน้าตัวอย่างบัตร ส่วนแสดงตัวอย่างจะเปิดบัตรให้ดูก่อนแล้วค่อยกดพิมพ์</div>
         </fieldset>
-        <button class="btn btn-teal">บันทึก</button>
+
+        <hr class="my-4" />
+        <h2 class="h5 mb-2">Cloud SQL Server</h2>
+        <p class="text-muted small mb-3">
+            บันทึกที่ Local ก่อน แล้วซิงก์ไป Cloud อัตโนมัติเมื่อเชื่อมต่อได้
+            เซิร์ฟเวอร์เป้าหมาย: <code>192.168.11.204</code> / <code>VisitorManagment</code>
+            — ต้องใช้ <strong>SQL Authentication</strong> (Username/Password) เพราะเครื่องลูกข่ายมักใช้ Windows Auth กับเซิร์ฟเวอร์ระยะไกลไม่ได้
+            และ SQL Server ฝั่ง Cloud ต้องเปิด Remote TCP พอร์ต <code>1433</code>
+        </p>
+        <div class="alert @(Model.CloudOnline ? "alert-success" : "alert-warning") py-2">
+            <strong>@Model.CloudStatusLabel</strong>
+            @if (!string.IsNullOrWhiteSpace(Model.CloudStatusDetail))
+            {
+                <div class="small mt-1">@Model.CloudStatusDetail</div>
+            }
+        </div>
+        <div class="form-check form-switch mb-3">
+            <input asp-for="CloudEnabled" class="form-check-input" />
+            <label asp-for="CloudEnabled" class="form-check-label"></label>
+        </div>
+        <div class="row g-2">
+            <div class="col-md-6 mb-3">
+                <label asp-for="CloudServer" class="form-label"></label>
+                <input asp-for="CloudServer" class="form-control" placeholder="192.168.11.204" />
+            </div>
+            <div class="col-md-6 mb-3">
+                <label asp-for="CloudDatabase" class="form-label"></label>
+                <input asp-for="CloudDatabase" class="form-control" placeholder="VisitorManagment" />
+            </div>
+        </div>
+        <div class="form-check mb-3">
+            <input asp-for="CloudUseWindowsAuth" class="form-check-input" id="cloud-winauth" />
+            <label asp-for="CloudUseWindowsAuth" class="form-check-label"></label>
+            <div class="form-text">ถ้า Cloud เป็นเครื่องอื่นในวง LAN ส่วนใหญ่ต้องใช้ SQL Auth (ยกเลิกช่องนี้)</div>
+        </div>
+        <div class="row g-2" id="cloud-sqlauth">
+            <div class="col-md-6 mb-3">
+                <label asp-for="CloudUserId" class="form-label"></label>
+                <input asp-for="CloudUserId" class="form-control" autocomplete="username" placeholder="เช่น sa หรือ VisitorApp" />
+            </div>
+            <div class="col-md-6 mb-3">
+                <label asp-for="CloudPassword" class="form-label"></label>
+                <input asp-for="CloudPassword" class="form-control" autocomplete="new-password" placeholder="@(Model.CloudPasswordSet ? "•••••••• (ว่างไว้ถ้าไม่เปลี่ยน)" : "รหัสผ่าน Cloud SQL")" />
+            </div>
+        </div>
+
+        <div class="d-flex flex-wrap gap-2">
+            <button class="btn btn-teal" type="submit">บันทึก</button>
+        </div>
+    </form>
+    <form asp-action="TestCloud" method="post" class="mt-2">
+        @Html.AntiForgeryToken()
+        <button class="btn btn-outline-primary" type="submit">ทดสอบการเชื่อมต่อ Cloud</button>
     </form>
 </div>
+
+@section Scripts {
+    <script>
+        (function () {
+            const win = document.getElementById('cloud-winauth');
+            const box = document.getElementById('cloud-sqlauth');
+            function sync() {
+                if (!win || !box) return;
+                box.style.opacity = win.checked ? '0.45' : '1';
+                box.querySelectorAll('input').forEach(el => { el.disabled = win.checked; });
+            }
+            win?.addEventListener('change', sync);
+            sync();
+        })();
+    </script>
+}

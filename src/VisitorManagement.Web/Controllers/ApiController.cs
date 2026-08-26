@@ -76,6 +76,7 @@ public class ApiController : Controller
         return Json(new
         {
             enabled = s.Enabled,
+            configured = s.Configured,
             online = s.Online,
             server = s.Server,
             database = s.Database,
@@ -84,9 +85,11 @@ public class ApiController : Controller
             pendingSyncCount = s.PendingSyncCount,
             label = !s.Enabled
                 ? "Cloud ปิดใช้งาน"
-                : s.Online
-                    ? (s.PendingSyncCount > 0 ? $"Cloud ออนไลน์ · ค้างซิงก์ {s.PendingSyncCount}" : "Cloud ออนไลน์")
-                    : "Cloud ออฟไลน์"
+                : !s.Configured
+                    ? "Cloud ยังไม่ได้ตั้งค่า"
+                    : s.Online
+                        ? (s.PendingSyncCount > 0 ? $"Cloud ออนไลน์ · ค้างซิงก์ {s.PendingSyncCount}" : "Cloud ออนไลน์")
+                        : "Cloud ออฟไลน์"
         });
     }
 }

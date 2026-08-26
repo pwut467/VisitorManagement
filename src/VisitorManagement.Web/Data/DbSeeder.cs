@@ -43,8 +43,25 @@ public static class DbSeeder
                 DefaultVisitHours = 2,
                 OverstayGraceMinutes = 15,
                 AutoPrintBadge = true,
-                SeedRevision = 1
+                SeedRevision = 1,
+                CloudEnabled = true,
+                CloudServer = "192.168.11.204",
+                CloudDatabase = "VisitorManagment",
+                CloudUseWindowsAuth = false
             });
+            await db.SaveChangesAsync();
+        }
+        else
+        {
+            var company = await db.CompanyProfiles.FirstAsync();
+            if (string.IsNullOrWhiteSpace(company.CloudServer))
+            {
+                company.CloudEnabled = true;
+                company.CloudServer = "192.168.11.204";
+                company.CloudDatabase = "VisitorManagment";
+                company.CloudUseWindowsAuth = false;
+                await db.SaveChangesAsync();
+            }
         }
 
         if (!await db.Departments.AnyAsync())

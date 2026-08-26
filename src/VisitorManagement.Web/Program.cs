@@ -60,10 +60,10 @@ builder.Services.AddScoped<IBlacklistService, BlacklistService>();
 builder.Services.AddScoped<IAuditService, AuditService>();
 builder.Services.AddScoped<IVisitRegistrationService, VisitRegistrationService>();
 builder.Services.AddSingleton<ICloudConnectionStatus, CloudConnectionStatus>();
+builder.Services.AddSingleton<ICloudOptionsProvider, CloudOptionsProvider>();
 builder.Services.AddScoped<ICloudVisitSyncService, CloudVisitSyncService>();
 
-var cloudOpts = CloudOptions.From(builder.Configuration);
-if (cloudOpts.Enabled && !builder.Environment.IsEnvironment("Testing"))
+if (!builder.Environment.IsEnvironment("Testing"))
 {
     builder.Services.AddHostedService<CloudSyncBackgroundService>();
 }
