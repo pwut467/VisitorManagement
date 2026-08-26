@@ -30,7 +30,7 @@
                     <td class="col-seq text-center">@seq</td>
                     <td class="fw-semibold">@v.VisitNumber</td>
                     <td>
-                        @v.Visitor.FullName
+                        @v.GuestFullName
                         <div class="small text-muted">@v.CompanyName · @v.VisitorType.Name</div>
                     </td>
                     <td class="text-nowrap">@(string.IsNullOrWhiteSpace(v.VehiclePlate) ? "—" : v.VehiclePlate)</td>

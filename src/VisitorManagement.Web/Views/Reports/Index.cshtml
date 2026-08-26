@@ -56,7 +56,7 @@
             <tr class="@stripe">
                 <td class="col-seq text-center">@seq</td>
                 <td class="text-nowrap">@v.VisitNumber</td>
-                <td>@v.Visitor.FullName</td>
+                <td>@v.GuestFullName</td>
                 <td class="text-nowrap">@(string.IsNullOrWhiteSpace(v.VehiclePlate) ? "—" : v.VehiclePlate)</td>
                 <td>@v.VisitorType.Name</td>
                 <td>@v.HostEmployee.FullName</td>

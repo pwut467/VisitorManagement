@@ -67,6 +67,8 @@ public class VisitsController : Controller
             var term = filter.Q.Trim();
             q = q.Where(v =>
                 v.VisitNumber.Contains(term) ||
+                v.GuestFirstName.Contains(term) ||
+                v.GuestLastName.Contains(term) ||
                 v.Visitor.FirstName.Contains(term) ||
                 v.Visitor.LastName.Contains(term) ||
                 v.Visitor.NationalId.Contains(term) ||

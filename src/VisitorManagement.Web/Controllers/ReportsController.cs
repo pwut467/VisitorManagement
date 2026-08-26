@@ -50,7 +50,7 @@ public class ReportsController : Controller
         {
             sheet.Cell(row, 1).Value = seq++;
             sheet.Cell(row, 2).Value = v.VisitNumber;
-            sheet.Cell(row, 3).Value = v.Visitor.FullName;
+            sheet.Cell(row, 3).Value = v.GuestFullName;
             sheet.Cell(row, 4).Value = string.IsNullOrWhiteSpace(v.VehiclePlate) ? "" : v.VehiclePlate;
             sheet.Cell(row, 5).Value = ThaiNationalId.Mask(v.Visitor.NationalId);
             sheet.Cell(row, 6).Value = v.CompanyName ?? "";

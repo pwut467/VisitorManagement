@@ -60,7 +60,7 @@
                     <td class="fw-semibold text-nowrap">
                         <a asp-action="Details" asp-route-id="@v.Id" asp-route-returnUrl="@here">@v.VisitNumber</a>
                     </td>
-                    <td>@v.Visitor.FullName<br /><span class="small text-muted">@v.CompanyName</span></td>
+                    <td>@v.GuestFullName<br /><span class="small text-muted">@v.CompanyName</span></td>
                     <td>@v.VisitorType.Name</td>
                     <td>@v.HostEmployee.FullName</td>
                     <td>@v.CheckInAt?.ToString("dd/MM HH:mm")</td>

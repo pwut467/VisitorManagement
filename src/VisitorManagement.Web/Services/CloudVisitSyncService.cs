@@ -251,6 +251,10 @@ public sealed class CloudVisitSyncService : ICloudVisitSyncService
         cloudVisit.GateIn = gateIn;
         cloudVisit.GateOut = gateOut;
         cloudVisit.CompanyName = local.CompanyName;
+        cloudVisit.GuestTitle = local.GuestTitle;
+        cloudVisit.GuestFirstName = local.GuestFirstName;
+        cloudVisit.GuestLastName = local.GuestLastName;
+        cloudVisit.GuestPhone = local.GuestPhone;
         cloudVisit.PurposeDetail = local.PurposeDetail;
         cloudVisit.VehiclePlate = local.VehiclePlate;
         cloudVisit.VehicleType = local.VehicleType;
@@ -283,21 +287,23 @@ public sealed class CloudVisitSyncService : ICloudVisitSyncService
             visitor = new Visitor
             {
                 NationalId = local.NationalId,
-                CreatedAt = local.CreatedAt
+                Title = local.Title,
+                FirstName = local.FirstName,
+                LastName = local.LastName,
+                Phone = local.Phone,
+                Email = local.Email,
+                CompanyName = local.CompanyName,
+                Address = local.Address,
+                DateOfBirth = local.DateOfBirth,
+                PhotoPath = local.PhotoPath,
+                CreatedAt = local.CreatedAt,
+                UpdatedAt = local.UpdatedAt
             };
             cloud.Visitors.Add(visitor);
+            return visitor;
         }
 
-        visitor.Title = local.Title;
-        visitor.FirstName = local.FirstName;
-        visitor.LastName = local.LastName;
-        visitor.Phone = local.Phone;
-        visitor.Email = local.Email;
-        visitor.CompanyName = local.CompanyName;
-        visitor.Address = local.Address;
-        visitor.DateOfBirth = local.DateOfBirth;
-        visitor.PhotoPath = local.PhotoPath;
-        visitor.UpdatedAt = local.UpdatedAt;
+        // Keep the first-known master identity on cloud; visit-level names live on Visits.Guest*.
         return visitor;
     }
 

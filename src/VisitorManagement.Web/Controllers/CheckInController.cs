@@ -38,10 +38,10 @@ public class CheckInController : Controller
             {
                 model.VisitId = visit.Id;
                 model.NationalId = visit.Visitor.NationalId;
-                model.Title = visit.Visitor.Title;
-                model.FirstName = visit.Visitor.FirstName;
-                model.LastName = visit.Visitor.LastName;
-                model.Phone = visit.Visitor.Phone ?? "";
+                model.Title = !string.IsNullOrWhiteSpace(visit.GuestTitle) ? visit.GuestTitle : visit.Visitor.Title;
+                model.FirstName = !string.IsNullOrWhiteSpace(visit.GuestFirstName) ? visit.GuestFirstName : visit.Visitor.FirstName;
+                model.LastName = !string.IsNullOrWhiteSpace(visit.GuestLastName) ? visit.GuestLastName : visit.Visitor.LastName;
+                model.Phone = visit.GuestPhone ?? visit.Visitor.Phone ?? "";
                 model.CompanyName = visit.CompanyName ?? visit.Visitor.CompanyName;
                 model.Address = visit.Visitor.Address;
                 model.VisitorTypeId = visit.VisitorTypeId;

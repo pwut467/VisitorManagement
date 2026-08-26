@@ -59,7 +59,7 @@
                 <tr class="@stripe">
                     <td class="col-seq text-center">@seq</td>
                     <td class="fw-semibold text-nowrap">@v.VisitNumber</td>
-                    <td>@v.Visitor.FullName<br /><span class="small text-muted">@v.CompanyName</span></td>
+                    <td>@v.GuestFullName<br /><span class="small text-muted">@v.CompanyName</span></td>
                     <td class="text-nowrap">@(string.IsNullOrWhiteSpace(v.VehiclePlate) ? "—" : v.VehiclePlate)</td>
                     <td>@v.HostEmployee.FullName</td>
                     <td>@v.CheckInAt?.ToString("HH:mm")</td>

@@ -167,20 +167,38 @@ public class VisitRegistrationServiceTests
     }
 
     [Fact]
-    public async Task ReturningVisitorIsReused()
+    public async Task ReturningVisitorKeepsMasterName_StoresVisitName()
     {
         var db = TestDb.Create();
         await TestDb.SeedGraphAsync(db);
         var svc = TestDb.CreateRegistration(db);
-        await svc.RegisterAsync(TestDb.ValidCheckIn(db), "u1");
+        var first = TestDb.ValidCheckIn(db);
+        first.FirstName = "สมชาย";
+        first.LastName = "ใจดี";
+        first.Phone = "081-111-1111";
+        await svc.RegisterAsync(first, "u1");
+
         var again = TestDb.ValidCheckIn(db);
         again.Phone = "089-000-1111";
         again.FirstName = "ทดลอง";
+        again.LastName = "ผิดชื่อ";
         var second = await svc.RegisterAsync(again, "u1");
         Assert.True(second.Succeeded, second.Error);
         Assert.Equal(1, await db.Visitors.CountAsync());
         Assert.Equal(2, await db.Visits.CountAsync());
-        Assert.Equal("089-000-1111", db.Visitors.Single().Phone);
+
+        var master = db.Visitors.Single();
+        Assert.Equal("สมชาย", master.FirstName);
+        Assert.Equal("ใจดี", master.LastName);
+        Assert.Equal("081-111-1111", master.Phone);
+
+        var visit = await db.Visits.OrderByDescending(v => v.Id).FirstAsync();
+        Assert.Equal("ทดลอง", visit.GuestFirstName);
+        Assert.Equal("ผิดชื่อ", visit.GuestLastName);
+        Assert.Equal("089-000-1111", visit.GuestPhone);
+        Assert.Equal("ทดลอง ผิดชื่อ", $"{visit.GuestFirstName} {visit.GuestLastName}".Trim());
+        Assert.Contains("ทดลอง", visit.GuestFullName);
+        Assert.True(visit.HasNameMismatchWithMaster);
     }
 
     [Fact]

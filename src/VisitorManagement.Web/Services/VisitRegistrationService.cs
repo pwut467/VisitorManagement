@@ -110,25 +110,25 @@ public class VisitRegistrationService : IVisitRegistrationService
 
         var now = TimeHelper.Now;
         var visitor = await FindVisitorAsync(nationalId, cancellationToken);
-        if (visitor is null)
+        var isNewVisitor = visitor is null;
+        if (isNewVisitor)
         {
             visitor = new Visitor
             {
                 NationalId = nationalId,
-                CreatedAt = now
+                Title = model.Title ?? "",
+                FirstName = model.FirstName.Trim(),
+                LastName = model.LastName.Trim(),
+                Phone = model.Phone?.Trim(),
+                Email = null,
+                DateOfBirth = null,
+                CompanyName = model.CompanyName?.Trim(),
+                Address = model.Address?.Trim(),
+                CreatedAt = now,
+                UpdatedAt = now
             };
             _db.Visitors.Add(visitor);
         }
-
-        visitor.Title = model.Title;
-        visitor.FirstName = model.FirstName.Trim();
-        visitor.LastName = model.LastName.Trim();
-        visitor.Phone = model.Phone?.Trim();
-        visitor.Email = null;
-        visitor.DateOfBirth = null;
-        visitor.CompanyName = model.CompanyName?.Trim();
-        visitor.Address = model.Address?.Trim();
-        visitor.UpdatedAt = now;
 
         Visit visit;
         if (model.VisitId is int existingId)
@@ -163,12 +163,17 @@ public class VisitRegistrationService : IVisitRegistrationService
             hours = 2;
         }
 
-        visit.Visitor = visitor;
+        visit.Visitor = visitor!;
         visit.VisitorTypeId = model.VisitorTypeId.Value;
         visit.VisitPurposeId = model.VisitPurposeId.Value;
         visit.HostEmployee = host;
         visit.GateInId = gateId == 0 ? null : gateId;
         visit.CompanyName = model.CompanyName?.Trim();
+        // Always store the typed identity for this visit; never overwrite an existing Visitor master name.
+        visit.GuestTitle = model.Title ?? "";
+        visit.GuestFirstName = model.FirstName.Trim();
+        visit.GuestLastName = model.LastName.Trim();
+        visit.GuestPhone = model.Phone?.Trim();
         visit.PurposeDetail = model.PurposeDetail?.Trim();
         visit.VehiclePlate = model.VehiclePlate?.Trim();
         visit.VehicleType = model.VehicleType?.Trim();
@@ -199,7 +204,11 @@ public class VisitRegistrationService : IVisitRegistrationService
         if (photo is not null)
         {
             visit.PhotoPath = photo;
-            visitor.PhotoPath = photo;
+            if (isNewVisitor)
+            {
+                visitor!.PhotoPath = photo;
+            }
+
             await _db.SaveChangesAsync(cancellationToken);
         }
 

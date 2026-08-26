@@ -33,6 +33,19 @@ public class Visit
     [MaxLength(200)]
     public string? CompanyName { get; set; }
 
+    /// <summary>Name typed for this visit (kept even if it differs from the Visitor master linked by NationalId).</summary>
+    [MaxLength(20)]
+    public string GuestTitle { get; set; } = string.Empty;
+
+    [MaxLength(80)]
+    public string GuestFirstName { get; set; } = string.Empty;
+
+    [MaxLength(80)]
+    public string GuestLastName { get; set; } = string.Empty;
+
+    [MaxLength(30)]
+    public string? GuestPhone { get; set; }
+
     [MaxLength(300)]
     public string? PurposeDetail { get; set; }
 
@@ -87,6 +100,34 @@ public class Visit
     public string? CloudSyncError { get; set; }
 
     public ICollection<VisitItem> Items { get; set; } = new List<VisitItem>();
+
+    public string GuestFullName
+    {
+        get
+        {
+            if (!string.IsNullOrWhiteSpace(GuestFirstName) || !string.IsNullOrWhiteSpace(GuestLastName))
+            {
+                return $"{GuestTitle} {GuestFirstName} {GuestLastName}".Trim();
+            }
+
+            return Visitor?.FullName ?? string.Empty;
+        }
+    }
+
+    public bool HasNameMismatchWithMaster
+    {
+        get
+        {
+            if (Visitor is null || string.IsNullOrWhiteSpace(GuestFirstName))
+            {
+                return false;
+            }
+
+            return !string.Equals(GuestFirstName.Trim(), Visitor.FirstName.Trim(), StringComparison.OrdinalIgnoreCase)
+                   || !string.Equals(GuestLastName.Trim(), Visitor.LastName.Trim(), StringComparison.OrdinalIgnoreCase)
+                   || !string.Equals((GuestTitle ?? "").Trim(), (Visitor.Title ?? "").Trim(), StringComparison.OrdinalIgnoreCase);
+        }
+    }
 
     public bool IsOnSite => Status == VisitStatus.CheckedIn;
 

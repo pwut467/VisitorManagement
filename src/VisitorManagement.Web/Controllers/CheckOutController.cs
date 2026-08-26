@@ -89,7 +89,7 @@ public class CheckOutController : Controller
             visit.VisitNumber,
             visit.Status,
             statusText = visit.Status.ToString(),
-            name = visit.Visitor.FullName,
+            name = visit.GuestFullName,
             company = visit.CompanyName,
             host = visit.HostEmployee.FullName,
             photo = visit.PhotoPath,
