@@ -167,7 +167,7 @@ public sealed class CloudVisitSyncService : ICloudVisitSyncService
             .Include(v => v.GateOut)
             .FirstOrDefaultAsync(v => v.Id == visitId, cancellationToken);
 
-    private async Task UpsertVisitAsync(CloudDbContext cloud, Visit local, CancellationToken cancellationToken)
+    private async Task UpsertVisitAsync(AppDbContext cloud, Visit local, CancellationToken cancellationToken)
     {
         var visitor = await UpsertVisitorAsync(cloud, local.Visitor, cancellationToken);
         var type = await EnsureNamedAsync(
@@ -247,7 +247,7 @@ public sealed class CloudVisitSyncService : ICloudVisitSyncService
         cloudVisit.CloudSyncError = null;
     }
 
-    private static async Task<Visitor> UpsertVisitorAsync(CloudDbContext cloud, Visitor local, CancellationToken cancellationToken)
+    private static async Task<Visitor> UpsertVisitorAsync(AppDbContext cloud, Visitor local, CancellationToken cancellationToken)
     {
         var visitor = await cloud.Visitors.FirstOrDefaultAsync(v => v.NationalId == local.NationalId, cancellationToken);
         if (visitor is null)
@@ -273,7 +273,7 @@ public sealed class CloudVisitSyncService : ICloudVisitSyncService
         return visitor;
     }
 
-    private static async Task<Employee> UpsertHostAsync(CloudDbContext cloud, Employee local, CancellationToken cancellationToken)
+    private static async Task<Employee> UpsertHostAsync(AppDbContext cloud, Employee local, CancellationToken cancellationToken)
     {
         var deptCode = local.Department?.Code ?? "GEN";
         var deptName = local.Department?.Name ?? "ทั่วไป";
@@ -329,7 +329,7 @@ public sealed class CloudVisitSyncService : ICloudVisitSyncService
         return created;
     }
 
-    private async Task EnsureCloudSchemaAsync(CloudDbContext cloud, CancellationToken cancellationToken)
+    private async Task EnsureCloudSchemaAsync(AppDbContext cloud, CancellationToken cancellationToken)
     {
         if (_schemaReady)
         {
@@ -354,14 +354,14 @@ public sealed class CloudVisitSyncService : ICloudVisitSyncService
         }
     }
 
-    private CloudDbContext CreateCloudContext()
+    private AppDbContext CreateCloudContext()
     {
         var cs = _options.ConnectionString
             ?? throw new InvalidOperationException("Cloud SQL connection string is not configured.");
-        var options = new DbContextOptionsBuilder<CloudDbContext>()
+        var options = new DbContextOptionsBuilder<AppDbContext>()
             .UseSqlServer(cs)
             .Options;
-        return new CloudDbContext(options);
+        return new AppDbContext(options);
     }
 
     private static string TrimError(Exception ex)
