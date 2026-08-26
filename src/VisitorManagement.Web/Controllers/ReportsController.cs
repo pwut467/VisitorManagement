@@ -12,29 +12,34 @@ namespace VisitorManagement.Web.Controllers;
 public class ReportsController : Controller
 {
     private readonly AppDbContext _db;
+    private readonly ICompanyContext _companyContext;
 
-    public ReportsController(AppDbContext db)
+    public ReportsController(AppDbContext db, ICompanyContext companyContext)
     {
         _db = db;
+        _companyContext = companyContext;
     }
 
     public async Task<IActionResult> Index(DateTime? from, DateTime? to, int? visitorTypeId)
     {
+        var company = await _companyContext.GetActiveAsync();
         var start = (from ?? TimeHelper.Today).Date;
         var end = (to ?? TimeHelper.Today).Date.AddDays(1);
-        var list = await QueryVisits(start, end, visitorTypeId).ToListAsync();
+        var list = await QueryVisits(company.Id, start, end, visitorTypeId).ToListAsync();
         ViewBag.From = start;
         ViewBag.To = end.AddDays(-1);
         ViewBag.Types = await _db.VisitorTypes.OrderBy(x => x.Name).ToListAsync();
         ViewBag.VisitorTypeId = visitorTypeId;
+        ViewBag.ActiveCompany = company;
         return View(list);
     }
 
     public async Task<IActionResult> Excel(DateTime? from, DateTime? to, int? visitorTypeId)
     {
+        var company = await _companyContext.GetActiveAsync();
         var start = (from ?? TimeHelper.Today).Date;
         var end = (to ?? TimeHelper.Today).Date.AddDays(1);
-        var list = await QueryVisits(start, end, visitorTypeId).ToListAsync();
+        var list = await QueryVisits(company.Id, start, end, visitorTypeId).ToListAsync();
 
         using var workbook = new XLWorkbook();
         var sheet = workbook.Worksheets.Add("ผู้มาติดต่อ");
@@ -76,17 +81,19 @@ public class ReportsController : Controller
         return File(
             stream.ToArray(),
             "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-            $"visitors-{start:yyyyMMdd}-{toDate:yyyyMMdd}.xlsx");
+            $"visitors-{company.CompanyCode}-{start:yyyyMMdd}-{toDate:yyyyMMdd}.xlsx");
     }
 
-    private IQueryable<Visit> QueryVisits(DateTime start, DateTime end, int? visitorTypeId)
+    private IQueryable<Visit> QueryVisits(int companyId, DateTime start, DateTime end, int? visitorTypeId)
     {
         var q = _db.Visits
             .Include(v => v.Visitor)
             .Include(v => v.HostEmployee)
             .Include(v => v.VisitorType)
             .Include(v => v.VisitPurpose)
-            .Where(v => (v.CheckInAt ?? v.CreatedAt) >= start && (v.CheckInAt ?? v.CreatedAt) < end);
+            .Where(v => v.CompanyProfileId == companyId
+                        && (v.CheckInAt ?? v.CreatedAt) >= start
+                        && (v.CheckInAt ?? v.CreatedAt) < end);
 
         if (visitorTypeId is int t)
         {

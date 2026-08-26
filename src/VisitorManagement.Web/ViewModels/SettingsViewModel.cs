@@ -1,9 +1,17 @@
 using System.ComponentModel.DataAnnotations;
+using Microsoft.AspNetCore.Mvc.Rendering;
 
 namespace VisitorManagement.Web.ViewModels;
 
 public class SettingsViewModel
 {
+    public int CompanyId { get; set; }
+
+    [Required, Display(Name = "รหัสบริษัท")]
+    [MaxLength(20)]
+    [RegularExpression(@"^[A-Za-z0-9_-]+$", ErrorMessage = "รหัสบริษัทใช้ได้เฉพาะตัวอักษร ตัวเลข - และ _")]
+    public string CompanyCode { get; set; } = "DEFAULT";
+
     [Required, Display(Name = "ชื่อบริษัท")]
     public string Name { get; set; } = string.Empty;
 
@@ -50,4 +58,12 @@ public class SettingsViewModel
     public string? CloudStatusLabel { get; set; }
     public string? CloudStatusDetail { get; set; }
     public bool CloudOnline { get; set; }
+
+    public List<SelectListItem> CompanyOptions { get; set; } = [];
+
+    [Display(Name = "รหัสบริษัทใหม่")]
+    public string? NewCompanyCode { get; set; }
+
+    [Display(Name = "ชื่อบริษัทใหม่")]
+    public string? NewCompanyName { get; set; }
 }

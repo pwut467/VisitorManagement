@@ -16,12 +16,18 @@ public class CheckInController : Controller
     private readonly AppDbContext _db;
     private readonly IVisitRegistrationService _registration;
     private readonly IConfiguration _config;
+    private readonly ICompanyContext _companyContext;
 
-    public CheckInController(AppDbContext db, IVisitRegistrationService registration, IConfiguration config)
+    public CheckInController(
+        AppDbContext db,
+        IVisitRegistrationService registration,
+        IConfiguration config,
+        ICompanyContext companyContext)
     {
         _db = db;
         _registration = registration;
         _config = config;
+        _companyContext = companyContext;
     }
 
     [HttpGet]
@@ -96,11 +102,8 @@ public class CheckInController : Controller
             return RedirectToAction("Details", "Visits", new { id = result.Visit!.Id, returnUrl = Url.Action(nameof(Index)) });
         }
 
-        var autoPrint = await _db.CompanyProfiles
-            .AsNoTracking()
-            .Select(c => (bool?)c.AutoPrintBadge)
-            .FirstOrDefaultAsync() ?? true;
-        if (autoPrint)
+        var activeCompany = await _companyContext.GetActiveAsync();
+        if (activeCompany.AutoPrintBadge)
         {
             TempData["PrintBadgeUrl"] = Url.Action("Badge", "Visits", new { id = result.Visit!.Id, autoprint = "true" });
             return RedirectToAction(nameof(Index));
@@ -111,13 +114,14 @@ public class CheckInController : Controller
 
     private async Task PopulateAsync(CheckInViewModel model)
     {
-        var company = await _db.CompanyProfiles.FirstOrDefaultAsync();
+        var company = await _companyContext.GetActiveAsync();
         if (model.ExpectedHours <= 0)
         {
-            model.ExpectedHours = company?.DefaultVisitHours ?? 2;
+            model.ExpectedHours = company.DefaultVisitHours > 0 ? company.DefaultVisitHours : 2;
         }
 
-        ViewBag.AutoPrintBadge = company?.AutoPrintBadge ?? true;
+        ViewBag.AutoPrintBadge = company.AutoPrintBadge;
+        ViewBag.ActiveCompany = company;
 
         model.Titles = new[] { "นาย", "นาง", "นางสาว", "อื่นๆ" }
             .Select(t => new SelectListItem(t, t, t == model.Title));

@@ -6,6 +6,10 @@ public class CompanyProfile
 {
     public int Id { get; set; }
 
+    /// <summary>Short unique code used to separate visitor data across companies.</summary>
+    [Required, MaxLength(20)]
+    public string CompanyCode { get; set; } = "DEFAULT";
+
     [Required, MaxLength(200)]
     public string Name { get; set; } = string.Empty;
 
@@ -24,6 +28,9 @@ public class CompanyProfile
 
     public bool AutoPrintBadge { get; set; } = true;
 
+    /// <summary>Default active company for new sessions / workstations.</summary>
+    public bool IsActive { get; set; } = true;
+
     public int SeedRevision { get; set; }
 
     public bool CloudEnabled { get; set; } = true;
@@ -41,4 +48,7 @@ public class CompanyProfile
 
     [MaxLength(200)]
     public string? CloudPassword { get; set; }
+
+    public ICollection<Visit> Visits { get; set; } = new List<Visit>();
+    public ICollection<Visitor> Visitors { get; set; } = new List<Visitor>();
 }

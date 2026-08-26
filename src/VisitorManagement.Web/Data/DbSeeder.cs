@@ -40,12 +40,14 @@ public static class DbSeeder
         {
             db.CompanyProfiles.Add(new CompanyProfile
             {
+                CompanyCode = "SKNY",
                 Name = "บริษัท ส.เขมราฐอินดัสตรี้ จำกัด (โรงโม่น้ำยืน)",
                 Address = "199 หมู่ 9 บ.โนนทอง ต.สีวิเชียร อ.น้ำยืน จ.อุบลราชธานี",
                 BadgeFooter = "กรุณาติดบัตรนี้ตลอดเวลาที่อยู่ในบริษัท และคืนบัตรเมื่อออกจากพื้นที่",
                 DefaultVisitHours = 2,
                 OverstayGraceMinutes = 15,
                 AutoPrintBadge = true,
+                IsActive = true,
                 SeedRevision = 2,
                 CloudEnabled = true,
                 CloudServer = string.IsNullOrWhiteSpace(cloudOpts.Server) ? "192.168.11.204" : cloudOpts.Server,
@@ -58,27 +60,42 @@ public static class DbSeeder
         }
         else
         {
-            var company = await db.CompanyProfiles.FirstAsync();
+            var companies = await db.CompanyProfiles.ToListAsync();
             var dirty = false;
-            if (string.IsNullOrWhiteSpace(company.CloudServer))
+            if (!companies.Any(c => c.IsActive))
             {
-                company.CloudEnabled = true;
-                company.CloudServer = string.IsNullOrWhiteSpace(cloudOpts.Server) ? "192.168.11.204" : cloudOpts.Server;
-                company.CloudDatabase = string.IsNullOrWhiteSpace(cloudOpts.Database) ? "VisitorManagment" : cloudOpts.Database;
-                company.CloudUseWindowsAuth = false;
+                companies[0].IsActive = true;
                 dirty = true;
             }
 
-            if (string.IsNullOrWhiteSpace(company.CloudUserId) && !string.IsNullOrWhiteSpace(cloudOpts.UserId))
+            foreach (var company in companies)
             {
-                company.CloudUserId = cloudOpts.UserId;
-                dirty = true;
-            }
+                if (string.IsNullOrWhiteSpace(company.CompanyCode))
+                {
+                    company.CompanyCode = company.Id == companies[0].Id ? "SKNY" : $"C{company.Id}";
+                    dirty = true;
+                }
 
-            if (string.IsNullOrEmpty(company.CloudPassword) && !string.IsNullOrEmpty(cloudOpts.Password))
-            {
-                company.CloudPassword = cloudOpts.Password;
-                dirty = true;
+                if (string.IsNullOrWhiteSpace(company.CloudServer))
+                {
+                    company.CloudEnabled = true;
+                    company.CloudServer = string.IsNullOrWhiteSpace(cloudOpts.Server) ? "192.168.11.204" : cloudOpts.Server;
+                    company.CloudDatabase = string.IsNullOrWhiteSpace(cloudOpts.Database) ? "VisitorManagment" : cloudOpts.Database;
+                    company.CloudUseWindowsAuth = false;
+                    dirty = true;
+                }
+
+                if (string.IsNullOrWhiteSpace(company.CloudUserId) && !string.IsNullOrWhiteSpace(cloudOpts.UserId))
+                {
+                    company.CloudUserId = cloudOpts.UserId;
+                    dirty = true;
+                }
+
+                if (string.IsNullOrEmpty(company.CloudPassword) && !string.IsNullOrEmpty(cloudOpts.Password))
+                {
+                    company.CloudPassword = cloudOpts.Password;
+                    dirty = true;
+                }
             }
 
             if (dirty)
@@ -233,6 +250,22 @@ public static class DbSeeder
         db.VisitItems.RemoveRange(await db.VisitItems.ToListAsync());
         db.Visits.RemoveRange(await db.Visits.ToListAsync());
         db.Visitors.RemoveRange(await db.Visitors.ToListAsync());
+        await db.SaveChangesAsync();
+    }
+
+    public static async Task ClearVisitorDataForCompanyAsync(AppDbContext db, int companyProfileId)
+    {
+        var visitIds = await db.Visits
+            .Where(v => v.CompanyProfileId == companyProfileId)
+            .Select(v => v.Id)
+            .ToListAsync();
+        if (visitIds.Count > 0)
+        {
+            db.VisitItems.RemoveRange(await db.VisitItems.Where(i => visitIds.Contains(i.VisitId)).ToListAsync());
+            db.Visits.RemoveRange(await db.Visits.Where(v => v.CompanyProfileId == companyProfileId).ToListAsync());
+        }
+
+        db.Visitors.RemoveRange(await db.Visitors.Where(v => v.CompanyProfileId == companyProfileId).ToListAsync());
         await db.SaveChangesAsync();
     }
 

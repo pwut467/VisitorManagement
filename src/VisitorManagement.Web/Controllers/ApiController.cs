@@ -14,12 +14,18 @@ public class ApiController : Controller
     private readonly AppDbContext _db;
     private readonly IBlacklistService _blacklist;
     private readonly ICloudConnectionStatus _cloudStatus;
+    private readonly ICompanyContext _companyContext;
 
-    public ApiController(AppDbContext db, IBlacklistService blacklist, ICloudConnectionStatus cloudStatus)
+    public ApiController(
+        AppDbContext db,
+        IBlacklistService blacklist,
+        ICloudConnectionStatus cloudStatus,
+        ICompanyContext companyContext)
     {
         _db = db;
         _blacklist = blacklist;
         _cloudStatus = cloudStatus;
+        _companyContext = companyContext;
     }
 
     [HttpGet("visitors/by-national-id")]
@@ -31,8 +37,10 @@ public class ApiController : Controller
             return Json(new { found = false, valid = false });
         }
 
+        var company = await _companyContext.GetActiveAsync();
         var blocked = await _blacklist.FindActiveAsync(nationalId, null);
-        var visitor = await _db.Visitors.FirstOrDefaultAsync(v => v.NationalId == nationalId);
+        var visitor = await _db.Visitors.FirstOrDefaultAsync(v =>
+            v.CompanyProfileId == company.Id && v.NationalId == nationalId);
         return Json(new
         {
             found = visitor is not null,

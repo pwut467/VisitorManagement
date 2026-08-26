@@ -12,19 +12,26 @@ namespace VisitorManagement.Web.Controllers;
 public class DashboardController : Controller
 {
     private readonly AppDbContext _db;
+    private readonly ICompanyContext _companyContext;
 
-    public DashboardController(AppDbContext db)
+    public DashboardController(AppDbContext db, ICompanyContext companyContext)
     {
         _db = db;
+        _companyContext = companyContext;
     }
 
     public async Task<IActionResult> Index()
     {
+        var company = await _companyContext.GetActiveAsync();
         var now = TimeHelper.Now;
         var today = now.Date;
         var tomorrow = today.AddDays(1);
 
-        var visits = _db.Visits.Include(v => v.Visitor).Include(v => v.HostEmployee).Include(v => v.VisitorType);
+        var visits = _db.Visits
+            .Include(v => v.Visitor)
+            .Include(v => v.HostEmployee)
+            .Include(v => v.VisitorType)
+            .Where(v => v.CompanyProfileId == company.Id);
 
         var onSite = await visits.Where(v => v.Status == VisitStatus.CheckedIn)
             .OrderBy(v => v.CheckInAt)
@@ -38,7 +45,7 @@ public class DashboardController : Controller
             OnSite = onSite.Take(8).ToList()
         };
 
-        var todayIns = await _db.Visits
+        var todayIns = await visits
             .Where(v => v.CheckInAt >= today && v.CheckInAt < tomorrow)
             .Select(v => v.CheckInAt)
             .ToListAsync();
@@ -48,6 +55,7 @@ public class DashboardController : Controller
             Count = todayIns.Count(t => t!.Value.Hour == h)
         }).ToList();
 
+        ViewBag.ActiveCompany = company;
         return View(vm);
     }
 }

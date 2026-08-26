@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using VisitorManagement.Web.Data;
 using VisitorManagement.Web.Models;
@@ -15,22 +16,26 @@ public class SettingsController : Controller
     private readonly ICloudVisitSyncService _cloudSync;
     private readonly ICloudConnectionStatus _cloudStatus;
     private readonly ICloudOptionsProvider _cloudOptions;
+    private readonly ICompanyContext _companyContext;
 
     public SettingsController(
         AppDbContext db,
         ICloudVisitSyncService cloudSync,
         ICloudConnectionStatus cloudStatus,
-        ICloudOptionsProvider cloudOptions)
+        ICloudOptionsProvider cloudOptions,
+        ICompanyContext companyContext)
     {
         _db = db;
         _cloudSync = cloudSync;
         _cloudStatus = cloudStatus;
         _cloudOptions = cloudOptions;
+        _companyContext = companyContext;
     }
 
     public async Task<IActionResult> Index()
     {
-        var c = await _db.CompanyProfiles.FirstAsync();
+        var c = await _companyContext.GetActiveAsync();
+        ViewBag.ActiveCompany = c;
         return View(await ToModelAsync(c));
     }
 
@@ -38,21 +43,34 @@ public class SettingsController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Index(SettingsViewModel model)
     {
+        var c = await ResolveCompanyAsync(model.CompanyId);
         if (!ModelState.IsValid)
         {
-            var current = await _db.CompanyProfiles.FirstAsync();
+            await FillCompanyOptionsAsync(model, c.Id);
             var opts = await _cloudOptions.GetAsync();
-            model.CloudPasswordSet = !string.IsNullOrEmpty(current.CloudPassword) || !string.IsNullOrEmpty(opts.Password);
-            if (string.IsNullOrWhiteSpace(model.CloudUserId))
-            {
-                model.CloudUserId = opts.UserId;
-            }
-
+            model.CloudPasswordSet = !string.IsNullOrEmpty(c.CloudPassword) || !string.IsNullOrEmpty(opts.Password);
             ApplyStatus(model);
             return View(model);
         }
 
-        var c = await _db.CompanyProfiles.FirstAsync();
+        var code = CompanyContext.NormalizeCode(model.CompanyCode);
+        if (code.Length == 0)
+        {
+            ModelState.AddModelError(nameof(model.CompanyCode), "กรุณากรอกรหัสบริษัท");
+            await FillCompanyOptionsAsync(model, c.Id);
+            ApplyStatus(model);
+            return View(model);
+        }
+
+        if (await _db.CompanyProfiles.AnyAsync(x => x.CompanyCode == code && x.Id != c.Id))
+        {
+            ModelState.AddModelError(nameof(model.CompanyCode), $"รหัสบริษัท '{code}' มีอยู่แล้ว");
+            await FillCompanyOptionsAsync(model, c.Id);
+            ApplyStatus(model);
+            return View(model);
+        }
+
+        c.CompanyCode = code;
         c.Name = model.Name.Trim();
         c.Address = model.Address?.Trim();
         c.BadgeFooter = model.BadgeFooter.Trim();
@@ -74,11 +92,39 @@ public class SettingsController : Controller
         }
 
         await _db.SaveChangesAsync();
+        await _companyContext.SetActiveAsync(c.Id);
         await _cloudSync.ProbeAsync();
         var synced = await _cloudSync.SyncPendingAsync();
         TempData["Success"] = synced > 0
-            ? $"บันทึกการตั้งค่าแล้ว และซิงก์ไป Cloud {synced} รายการ"
-            : "บันทึกการตั้งค่าแล้ว";
+            ? $"บันทึกการตั้งค่าบริษัท {c.CompanyCode} แล้ว และซิงก์ไป Cloud {synced} รายการ"
+            : $"บันทึกการตั้งค่าบริษัท {c.CompanyCode} แล้ว";
+        return RedirectToAction(nameof(Index));
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> SwitchCompany(int companyId)
+    {
+        await _companyContext.SetActiveAsync(companyId);
+        var c = await _companyContext.GetActiveAsync();
+        TempData["Success"] = $"สลับไปบริษัท {c.CompanyCode} — {c.Name}";
+        return RedirectToAction(nameof(Index));
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> CreateCompany(string? newCompanyCode, string? newCompanyName)
+    {
+        try
+        {
+            var created = await _companyContext.CreateAsync(newCompanyCode ?? "", newCompanyName ?? "");
+            TempData["Success"] = $"สร้างบริษัท {created.CompanyCode} แล้ว — ข้อมูลผู้มาติดต่อจะแยกตามรหัสนี้";
+        }
+        catch (Exception ex)
+        {
+            TempData["Error"] = ex.Message;
+        }
+
         return RedirectToAction(nameof(Index));
     }
 
@@ -86,7 +132,7 @@ public class SettingsController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> TestCloud(SettingsViewModel model)
     {
-        var c = await _db.CompanyProfiles.FirstAsync();
+        var c = await ResolveCompanyAsync(model.CompanyId);
         c.CloudEnabled = model.CloudEnabled;
         c.CloudServer = string.IsNullOrWhiteSpace(model.CloudServer) ? "192.168.11.204" : model.CloudServer.Trim();
         c.CloudDatabase = string.IsNullOrWhiteSpace(model.CloudDatabase) ? "VisitorManagment" : model.CloudDatabase.Trim();
@@ -102,6 +148,7 @@ public class SettingsController : Controller
         }
 
         await _db.SaveChangesAsync();
+        await _companyContext.SetActiveAsync(c.Id);
 
         var ok = await _cloudSync.ProbeAsync();
         var snap = _cloudStatus.Current;
@@ -144,12 +191,27 @@ public class SettingsController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> ClearVisitors()
     {
-        var visitCount = await _db.Visits.CountAsync();
-        var visitorCount = await _db.Visitors.CountAsync();
-        await DbSeeder.ClearAllVisitorDataAsync(_db);
-        _cloudStatus.SetPendingCount(0);
-        TempData["Success"] = $"ล้างข้อมูลผู้มาติดต่อแล้ว (บัตร {visitCount} / บุคคล {visitorCount})";
+        var company = await _companyContext.GetActiveAsync();
+        var visitCount = await _db.Visits.CountAsync(v => v.CompanyProfileId == company.Id);
+        var visitorCount = await _db.Visitors.CountAsync(v => v.CompanyProfileId == company.Id);
+        await DbSeeder.ClearVisitorDataForCompanyAsync(_db, company.Id);
+        _cloudStatus.SetPendingCount(await _db.Visits.CountAsync(v => !v.CloudSynced));
+        TempData["Success"] = $"ล้างข้อมูลผู้มาติดต่อของบริษัท {company.CompanyCode} แล้ว (บัตร {visitCount} / บุคคล {visitorCount})";
         return RedirectToAction(nameof(Index));
+    }
+
+    private async Task<CompanyProfile> ResolveCompanyAsync(int companyId)
+    {
+        if (companyId > 0)
+        {
+            var found = await _db.CompanyProfiles.FirstOrDefaultAsync(c => c.Id == companyId);
+            if (found is not null)
+            {
+                return found;
+            }
+        }
+
+        return await _companyContext.GetActiveAsync();
     }
 
     private async Task<SettingsViewModel> ToModelAsync(CompanyProfile c)
@@ -157,6 +219,8 @@ public class SettingsController : Controller
         var opts = await _cloudOptions.GetAsync();
         var model = new SettingsViewModel
         {
+            CompanyId = c.Id,
+            CompanyCode = c.CompanyCode,
             Name = c.Name,
             Address = c.Address,
             BadgeFooter = c.BadgeFooter,
@@ -170,8 +234,17 @@ public class SettingsController : Controller
             CloudUserId = string.IsNullOrWhiteSpace(c.CloudUserId) ? opts.UserId : c.CloudUserId,
             CloudPasswordSet = !string.IsNullOrEmpty(c.CloudPassword) || !string.IsNullOrEmpty(opts.Password)
         };
+        await FillCompanyOptionsAsync(model, c.Id);
         ApplyStatus(model);
         return model;
+    }
+
+    private async Task FillCompanyOptionsAsync(SettingsViewModel model, int selectedId)
+    {
+        var list = await _companyContext.ListAsync();
+        model.CompanyOptions = list
+            .Select(c => new SelectListItem($"{c.CompanyCode} — {c.Name}", c.Id.ToString(), c.Id == selectedId))
+            .ToList();
     }
 
     private void ApplyStatus(SettingsViewModel model)

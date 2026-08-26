@@ -5,7 +5,7 @@ namespace VisitorManagement.Web.Services;
 
 public interface IVisitNumberService
 {
-    Task<string> NextAsync(DateTime localDate, CancellationToken cancellationToken = default);
+    Task<string> NextAsync(DateTime localDate, int companyProfileId, string companyCode, CancellationToken cancellationToken = default);
 }
 
 public class VisitNumberService : IVisitNumberService
@@ -17,11 +17,21 @@ public class VisitNumberService : IVisitNumberService
         _db = db;
     }
 
-    public async Task<string> NextAsync(DateTime localDate, CancellationToken cancellationToken = default)
+    public async Task<string> NextAsync(
+        DateTime localDate,
+        int companyProfileId,
+        string companyCode,
+        CancellationToken cancellationToken = default)
     {
-        var prefix = $"V{localDate:yyyyMMdd}-";
+        var code = CompanyContext.NormalizeCode(companyCode);
+        if (code.Length == 0)
+        {
+            code = "DEFAULT";
+        }
+
+        var prefix = $"{code}-V{localDate:yyyyMMdd}-";
         var last = await _db.Visits
-            .Where(v => v.VisitNumber.StartsWith(prefix))
+            .Where(v => v.CompanyProfileId == companyProfileId && v.VisitNumber.StartsWith(prefix))
             .OrderByDescending(v => v.VisitNumber)
             .Select(v => v.VisitNumber)
             .FirstOrDefaultAsync(cancellationToken);

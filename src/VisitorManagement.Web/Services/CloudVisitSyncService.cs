@@ -193,11 +193,13 @@ public sealed class CloudVisitSyncService : ICloudVisitSyncService
             .Include(v => v.HostEmployee).ThenInclude(h => h.Department)
             .Include(v => v.GateIn)
             .Include(v => v.GateOut)
+            .Include(v => v.CompanyProfile)
             .FirstOrDefaultAsync(v => v.Id == visitId, cancellationToken);
 
     private async Task UpsertVisitAsync(AppDbContext cloud, Visit local, CancellationToken cancellationToken)
     {
-        var visitor = await UpsertVisitorAsync(cloud, local.Visitor, cancellationToken);
+        var hostCompany = await EnsureHostCompanyAsync(cloud, local, cancellationToken);
+        var visitor = await UpsertVisitorAsync(cloud, local.Visitor, hostCompany, cancellationToken);
         var type = await EnsureNamedAsync(
             cloud.VisitorTypes,
             x => x.Name == local.VisitorType.Name,
@@ -244,6 +246,8 @@ public sealed class CloudVisitSyncService : ICloudVisitSyncService
         }
 
         cloudVisit.VisitNumber = local.VisitNumber;
+        cloudVisit.CompanyProfile = hostCompany;
+        cloudVisit.HostCompanyCode = hostCompany.CompanyCode;
         cloudVisit.Visitor = visitor;
         cloudVisit.VisitorType = type;
         cloudVisit.VisitPurpose = purpose;
@@ -279,13 +283,54 @@ public sealed class CloudVisitSyncService : ICloudVisitSyncService
         cloudVisit.CloudSyncError = null;
     }
 
-    private static async Task<Visitor> UpsertVisitorAsync(AppDbContext cloud, Visitor local, CancellationToken cancellationToken)
+    private static async Task<CompanyProfile> EnsureHostCompanyAsync(AppDbContext cloud, Visit local, CancellationToken cancellationToken)
     {
-        var visitor = await cloud.Visitors.FirstOrDefaultAsync(v => v.NationalId == local.NationalId, cancellationToken);
+        var code = CompanyContext.NormalizeCode(
+            !string.IsNullOrWhiteSpace(local.HostCompanyCode)
+                ? local.HostCompanyCode
+                : local.CompanyProfile?.CompanyCode);
+        if (code.Length == 0)
+        {
+            code = "DEFAULT";
+        }
+
+        var company = await cloud.CompanyProfiles.FirstOrDefaultAsync(c => c.CompanyCode == code, cancellationToken);
+        if (company is not null)
+        {
+            return company;
+        }
+
+        company = new CompanyProfile
+        {
+            CompanyCode = code,
+            Name = local.CompanyProfile?.Name ?? code,
+            Address = local.CompanyProfile?.Address,
+            BadgeFooter = local.CompanyProfile?.BadgeFooter
+                          ?? "กรุณาติดบัตรนี้ตลอดเวลาที่อยู่ในบริษัท และคืนบัตรเมื่อออก",
+            DefaultVisitHours = local.CompanyProfile?.DefaultVisitHours ?? 2,
+            OverstayGraceMinutes = local.CompanyProfile?.OverstayGraceMinutes ?? 15,
+            AutoPrintBadge = local.CompanyProfile?.AutoPrintBadge ?? true,
+            IsActive = false,
+            SeedRevision = local.CompanyProfile?.SeedRevision ?? 2
+        };
+        cloud.CompanyProfiles.Add(company);
+        return company;
+    }
+
+    private static async Task<Visitor> UpsertVisitorAsync(
+        AppDbContext cloud,
+        Visitor local,
+        CompanyProfile hostCompany,
+        CancellationToken cancellationToken)
+    {
+        var visitor = await cloud.Visitors.FirstOrDefaultAsync(
+            v => v.CompanyProfileId == hostCompany.Id && v.NationalId == local.NationalId,
+            cancellationToken);
         if (visitor is null)
         {
             visitor = new Visitor
             {
+                CompanyProfile = hostCompany,
                 NationalId = local.NationalId,
                 Title = local.Title,
                 FirstName = local.FirstName,

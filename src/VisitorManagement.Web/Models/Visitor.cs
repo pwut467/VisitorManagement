@@ -6,6 +6,9 @@ public class Visitor
 {
     public int Id { get; set; }
 
+    public int CompanyProfileId { get; set; }
+    public CompanyProfile CompanyProfile { get; set; } = null!;
+
     [Required, MaxLength(13)]
     public string NationalId { get; set; } = string.Empty;
 

@@ -33,28 +33,40 @@ public class ThaiNationalIdTests
 public class VisitNumberServiceTests
 {
     [Fact]
-    public async Task SequencesPerDay()
+    public async Task SequencesPerDayAndCompany()
     {
         var db = TestDb.Create();
+        await TestDb.SeedGraphAsync(db);
+        var company = db.CompanyProfiles.Single();
         var svc = new VisitNumberService(db);
         var day = new DateTime(2026, 8, 24);
-        var first = await svc.NextAsync(day);
-        db.Visits.Add(MinimalVisit(db, first));
+        var first = await svc.NextAsync(day, company.Id, company.CompanyCode);
+        db.Visits.Add(MinimalVisit(db, first, company));
         await db.SaveChangesAsync();
-        var second = await svc.NextAsync(day);
-        Assert.Equal("V20260824-0001", first);
-        Assert.Equal("V20260824-0002", second);
+        var second = await svc.NextAsync(day, company.Id, company.CompanyCode);
+        Assert.Equal("SKNY-V20260824-0001", first);
+        Assert.Equal("SKNY-V20260824-0002", second);
     }
 
-    private static Visit MinimalVisit(AppDbContext db, string number)
+    private static Visit MinimalVisit(AppDbContext db, string number, CompanyProfile company)
     {
-        var dept = new Department { Code = "X", Name = "X" };
-        var emp = new Employee { EmployeeCode = "Z1", FullName = "Host", Department = dept };
-        var type = new VisitorType { Name = "Guest", BadgeLabel = "GUEST" };
-        var purpose = new VisitPurpose { Name = "Meet" };
-        var visitor = new Visitor { NationalId = "3101700123452", FirstName = "A", LastName = "B", CreatedAt = TimeHelper.Now, UpdatedAt = TimeHelper.Now };
+        var dept = db.Departments.First();
+        var emp = db.Employees.First();
+        var type = db.VisitorTypes.First();
+        var purpose = db.VisitPurposes.First();
+        var visitor = new Visitor
+        {
+            CompanyProfileId = company.Id,
+            NationalId = "3101700123452",
+            FirstName = "A",
+            LastName = "B",
+            CreatedAt = TimeHelper.Now,
+            UpdatedAt = TimeHelper.Now
+        };
         return new Visit
         {
+            CompanyProfileId = company.Id,
+            HostCompanyCode = company.CompanyCode,
             VisitNumber = number,
             VisitCode = Guid.NewGuid().ToString("N"),
             Visitor = visitor,
@@ -86,7 +98,7 @@ public class VisitRegistrationServiceTests
         Assert.Null(stored.Email);
         Assert.Null(stored.DateOfBirth);
         Assert.NotNull(result.Visit.CheckInAt);
-        Assert.StartsWith("V", result.Visit.VisitNumber);
+        Assert.StartsWith("SKNY-V", result.Visit.VisitNumber);
 
         var outResult = await svc.CheckOutAsync(result.Visit.VisitCode, db.Gates.First().Id, "user-1", null);
         Assert.True(outResult.Succeeded, outResult.Error);
@@ -199,6 +211,39 @@ public class VisitRegistrationServiceTests
         Assert.Equal("ทดลอง ผิดชื่อ", $"{visit.GuestFirstName} {visit.GuestLastName}".Trim());
         Assert.Contains("ทดลอง", visit.GuestFullName);
         Assert.True(visit.HasNameMismatchWithMaster);
+        Assert.Equal(master.CompanyProfileId, visit.CompanyProfileId);
+    }
+
+    [Fact]
+    public async Task SameNationalIdCanExistInDifferentCompanies()
+    {
+        var db = TestDb.Create();
+        await TestDb.SeedGraphAsync(db);
+        var svc = TestDb.CreateRegistration(db);
+        await svc.RegisterAsync(TestDb.ValidCheckIn(db), "u1");
+
+        var other = new CompanyProfile
+        {
+            CompanyCode = "SITE2",
+            Name = "บริษัทสอง",
+            IsActive = true,
+            SeedRevision = 2
+        };
+        db.CompanyProfiles.Add(other);
+        foreach (var c in db.CompanyProfiles.Where(c => c.CompanyCode != "SITE2"))
+        {
+            c.IsActive = false;
+        }
+        await db.SaveChangesAsync();
+
+        var again = TestDb.ValidCheckIn(db);
+        again.FirstName = "คนละบริษัท";
+        var result = await svc.RegisterAsync(again, "u1");
+        Assert.True(result.Succeeded, result.Error);
+        Assert.Equal(2, await db.Visitors.CountAsync());
+        Assert.Equal(2, await db.Visits.CountAsync());
+        Assert.Contains(db.Visits, v => v.HostCompanyCode == "SKNY");
+        Assert.Contains(db.Visits, v => v.HostCompanyCode == "SITE2");
     }
 
     [Fact]
@@ -325,6 +370,15 @@ internal static class TestDb
 
     public static async Task SeedGraphAsync(AppDbContext db)
     {
+        db.CompanyProfiles.Add(new CompanyProfile
+        {
+            CompanyCode = "SKNY",
+            Name = "บริษัททดสอบ",
+            IsActive = true,
+            SeedRevision = 2,
+            DefaultVisitHours = 2,
+            AutoPrintBadge = true
+        });
         var dept = new Department { Code = "IT", Name = "ไอที" };
         db.Departments.Add(dept);
         db.Employees.Add(new Employee { EmployeeCode = "E1", FullName = "สมหญิง รักงาน", Department = dept });
@@ -362,7 +416,44 @@ internal static class TestDb
     };
 
     public static VisitRegistrationService CreateRegistration(AppDbContext db) =>
-        new(db, new VisitNumberService(db), new BlacklistService(db), new NullPhotos(), new AuditService(db), new NullCloudSync());
+        new(db, new VisitNumberService(db), new BlacklistService(db), new NullPhotos(), new AuditService(db), new NullCloudSync(), new TestCompanyContext(db));
+
+    private sealed class TestCompanyContext : ICompanyContext
+    {
+        private readonly AppDbContext _db;
+
+        public TestCompanyContext(AppDbContext db) => _db = db;
+
+        public Task<CompanyProfile> GetActiveAsync(CancellationToken cancellationToken = default) =>
+            _db.CompanyProfiles.OrderByDescending(c => c.IsActive).ThenBy(c => c.Id).FirstAsync(cancellationToken);
+
+        public async Task<IReadOnlyList<CompanyProfile>> ListAsync(CancellationToken cancellationToken = default) =>
+            await _db.CompanyProfiles.OrderBy(c => c.CompanyCode).ToListAsync(cancellationToken);
+
+        public async Task SetActiveAsync(int companyId, CancellationToken cancellationToken = default)
+        {
+            foreach (var c in await _db.CompanyProfiles.ToListAsync(cancellationToken))
+            {
+                c.IsActive = c.Id == companyId;
+            }
+
+            await _db.SaveChangesAsync(cancellationToken);
+        }
+
+        public async Task<CompanyProfile> CreateAsync(string companyCode, string name, CancellationToken cancellationToken = default)
+        {
+            var company = new CompanyProfile
+            {
+                CompanyCode = CompanyContext.NormalizeCode(companyCode),
+                Name = name.Trim(),
+                IsActive = true,
+                SeedRevision = 2
+            };
+            _db.CompanyProfiles.Add(company);
+            await _db.SaveChangesAsync(cancellationToken);
+            return company;
+        }
+    }
 
     private sealed class NullPhotos : IPhotoStorageService
     {

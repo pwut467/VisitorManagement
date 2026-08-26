@@ -6,11 +6,17 @@ public class Visit
 {
     public int Id { get; set; }
 
-    [Required, MaxLength(20)]
+    [Required, MaxLength(40)]
     public string VisitNumber { get; set; } = string.Empty;
 
     [Required, MaxLength(32)]
     public string VisitCode { get; set; } = string.Empty;
+
+    public int CompanyProfileId { get; set; }
+    public CompanyProfile CompanyProfile { get; set; } = null!;
+
+    [MaxLength(20)]
+    public string HostCompanyCode { get; set; } = string.Empty;
 
     public int VisitorId { get; set; }
     public Visitor Visitor { get; set; } = null!;

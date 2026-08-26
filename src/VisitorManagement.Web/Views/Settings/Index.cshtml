@@ -8,6 +8,31 @@
         <div class="col-lg-7">
             <div class="card vm-card p-4 h-100">
                 <h2 class="h5 mb-3">บริษัท / บัตร</h2>
+                <input type="hidden" asp-for="CompanyId" />
+                <div class="mb-3">
+                    <label class="form-label">บริษัทที่ใช้งานอยู่</label>
+                    <div class="d-flex gap-2 flex-wrap">
+                        <select class="form-select" style="max-width:360px" id="switch-company">
+                            @foreach (var opt in Model.CompanyOptions)
+                            {
+                                if (opt.Selected)
+                                {
+                                    <option value="@opt.Value" selected>@opt.Text</option>
+                                }
+                                else
+                                {
+                                    <option value="@opt.Value">@opt.Text</option>
+                                }
+                            }
+                        </select>
+                    </div>
+                    <div class="form-text">ข้อมูลผู้มาติดต่อแยกตามรหัสบริษัท — สลับบริษัทเพื่อดู/บันทึกเฉพาะบริษัทนั้น</div>
+                </div>
+                <div class="mb-3">
+                    <label asp-for="CompanyCode" class="form-label"></label>
+                    <input asp-for="CompanyCode" class="form-control text-uppercase" placeholder="เช่น SKNY" />
+                    <div class="form-text">ใช้ในเลขบัตร เช่น SKNY-V20260826-0001</div>
+                </div>
                 <div class="mb-3">
                     <label asp-for="Name" class="form-label"></label>
                     <input asp-for="Name" class="form-control" />
@@ -44,12 +69,31 @@
                 <button class="btn btn-teal" type="submit">บันทึก</button>
                 <hr class="my-4" />
                 <h3 class="h6 text-danger">ล้างข้อมูลผู้มาติดต่อ</h3>
-                <p class="text-muted small mb-2">ลบประวัติ Visit / Visitor ทั้งหมดในเครื่อง Local (ไม่ลบพนักงาน บัญชีผู้ใช้ หรือบัญชีดำ)</p>
+                <p class="text-muted small mb-2">ลบประวัติ Visit / Visitor ของบริษัทที่เลือกอยู่เท่านั้น (ไม่ลบพนักงาน บัญชีผู้ใช้ หรือบัญชีดำ)</p>
                 <button class="btn btn-outline-danger" type="submit"
                         formaction="@Url.Action("ClearVisitors")" formmethod="post"
-                        onclick="return confirm('ยืนยันล้างข้อมูลผู้มาติดต่อทั้งหมด? การกระทำนี้ย้อนกลับไม่ได้');">
-                    ล้างข้อมูลผู้มาติดต่อทั้งหมด
+                        onclick="return confirm('ยืนยันล้างข้อมูลผู้มาติดต่อของบริษัทนี้ทั้งหมด? การกระทำนี้ย้อนกลับไม่ได้');">
+                    ล้างข้อมูลผู้มาติดต่อของบริษัทนี้
                 </button>
+                <hr class="my-4" />
+                <h3 class="h6">เพิ่มบริษัทใหม่</h3>
+                <p class="text-muted small mb-2">สร้างรหัสบริษัทแยก สำหรับเก็บข้อมูลผู้มาติดต่อคนละชุด</p>
+                <div class="row g-2 align-items-end">
+                    <div class="col-md-4">
+                        <label class="form-label">@Html.DisplayNameFor(m => m.NewCompanyCode)</label>
+                        <input name="newCompanyCode" class="form-control text-uppercase" placeholder="รหัส เช่น SITE2" />
+                    </div>
+                    <div class="col-md-5">
+                        <label class="form-label">@Html.DisplayNameFor(m => m.NewCompanyName)</label>
+                        <input name="newCompanyName" class="form-control" placeholder="ชื่อบริษัท" />
+                    </div>
+                    <div class="col-md-3">
+                        <button class="btn btn-outline-primary w-100" type="submit"
+                                formaction="@Url.Action("CreateCompany")" formmethod="post">
+                            เพิ่ม
+                        </button>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -109,6 +153,10 @@
         </div>
     </div>
 </form>
+<form id="switch-company-form" asp-action="SwitchCompany" method="post" class="d-none">
+    @Html.AntiForgeryToken()
+    <input type="hidden" name="companyId" id="switch-company-id" />
+</form>
 
 @section Scripts {
     <script>
@@ -122,6 +170,15 @@
             }
             win?.addEventListener('change', sync);
             sync();
+
+            const sel = document.getElementById('switch-company');
+            const hidden = document.getElementById('switch-company-id');
+            const form = document.getElementById('switch-company-form');
+            sel?.addEventListener('change', () => {
+                if (!hidden || !form) return;
+                hidden.value = sel.value;
+                form.requestSubmit();
+            });
         })();
     </script>
 }

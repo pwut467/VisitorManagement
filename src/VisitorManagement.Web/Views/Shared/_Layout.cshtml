@@ -19,6 +19,10 @@
                 <span>
                     <strong>Visitor</strong>
                     <div class="small" style="opacity:.7">ระบบลงทะเบียนผู้มาติดต่อ</div>
+                    @if (ViewBag.ActiveCompany is CompanyProfile activeCompany)
+                    {
+                        <div class="small mt-1" style="opacity:.85">@activeCompany.CompanyCode</div>
+                    }
                 </span>
             </a>
             <div class="nav-section">ปฏิบัติการ</div>

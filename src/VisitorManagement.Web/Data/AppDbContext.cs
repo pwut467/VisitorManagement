@@ -26,10 +26,19 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>
     {
         base.OnModelCreating(builder);
 
+        builder.Entity<CompanyProfile>(e =>
+        {
+            e.HasIndex(x => x.CompanyCode).IsUnique();
+        });
+
         builder.Entity<Visitor>(e =>
         {
-            e.HasIndex(x => x.NationalId).IsUnique();
+            e.HasIndex(x => new { x.CompanyProfileId, x.NationalId }).IsUnique();
             e.HasIndex(x => new { x.LastName, x.FirstName });
+            e.HasOne(x => x.CompanyProfile)
+                .WithMany(c => c.Visitors)
+                .HasForeignKey(x => x.CompanyProfileId)
+                .OnDelete(DeleteBehavior.Restrict);
         });
 
         builder.Entity<Visit>(e =>
@@ -38,6 +47,11 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>
             e.HasIndex(x => x.VisitCode).IsUnique();
             e.HasIndex(x => x.Status);
             e.HasIndex(x => x.CheckInAt);
+            e.HasIndex(x => x.CompanyProfileId);
+            e.HasOne(x => x.CompanyProfile)
+                .WithMany(c => c.Visits)
+                .HasForeignKey(x => x.CompanyProfileId)
+                .OnDelete(DeleteBehavior.Restrict);
             e.HasOne(x => x.RegisteredByUser)
                 .WithMany()
                 .HasForeignKey(x => x.RegisteredByUserId)

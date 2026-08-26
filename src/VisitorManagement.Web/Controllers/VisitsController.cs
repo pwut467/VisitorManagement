@@ -14,22 +14,25 @@ public class VisitsController : Controller
     private readonly AppDbContext _db;
     private readonly IQrCodeService _qr;
     private readonly ICloudVisitSyncService _cloudSync;
+    private readonly ICompanyContext _companyContext;
 
-    public VisitsController(AppDbContext db, IQrCodeService qr, ICloudVisitSyncService cloudSync)
+    public VisitsController(AppDbContext db, IQrCodeService qr, ICloudVisitSyncService cloudSync, ICompanyContext companyContext)
     {
         _db = db;
         _qr = qr;
         _cloudSync = cloudSync;
+        _companyContext = companyContext;
     }
 
     public async Task<IActionResult> Index(VisitListFilter filter)
     {
+        var company = await _companyContext.GetActiveAsync();
         var q = _db.Visits
             .Include(v => v.Visitor)
             .Include(v => v.HostEmployee).ThenInclude(h => h.Department)
             .Include(v => v.VisitorType)
             .Include(v => v.GateIn)
-            .AsQueryable();
+            .Where(v => v.CompanyProfileId == company.Id);
 
         if (filter.OnSiteOnly)
         {
@@ -78,20 +81,23 @@ public class VisitsController : Controller
 
         var list = await q.OrderByDescending(v => v.CreatedAt).Take(300).ToListAsync();
         ViewBag.Filter = filter;
+        ViewBag.ActiveCompany = company;
         return View(list);
     }
 
     public async Task<IActionResult> OnSite()
     {
+        var company = await _companyContext.GetActiveAsync();
         var list = await _db.Visits
             .Include(v => v.Visitor)
             .Include(v => v.HostEmployee).ThenInclude(h => h.Department)
             .Include(v => v.VisitorType)
             .Include(v => v.GateIn)
-            .Where(v => v.Status == VisitStatus.CheckedIn)
+            .Where(v => v.CompanyProfileId == company.Id && v.Status == VisitStatus.CheckedIn)
             .OrderBy(v => v.CheckInAt)
             .ToListAsync();
         ViewBag.Now = TimeHelper.Now;
+        ViewBag.ActiveCompany = company;
         return View(list);
     }
 
@@ -121,7 +127,8 @@ public class VisitsController : Controller
         await _db.SaveChangesAsync();
 
         ViewBag.BarcodeSvg = Code128Barcode.Svg(visit.VisitNumber);
-        ViewBag.Company = await _db.CompanyProfiles.FirstAsync();
+        ViewBag.Company = visit.CompanyProfile
+            ?? await _db.CompanyProfiles.FirstAsync(c => c.Id == visit.CompanyProfileId);
         ViewBag.AutoPrint = VisitorManagement.Web.ViewFlag.IsOn(autoprint);
         ViewBag.ReturnUrl = LocalReturnUrl.IsUsable(returnUrl, Url.IsLocalUrl) ? returnUrl : null;
         return View(visit);
@@ -132,7 +139,8 @@ public class VisitsController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Cancel(int id, string? reason, string? returnUrl)
     {
-        var visit = await _db.Visits.FindAsync(id);
+        var company = await _companyContext.GetActiveAsync();
+        var visit = await _db.Visits.FirstOrDefaultAsync(v => v.Id == id && v.CompanyProfileId == company.Id);
         if (visit is null)
         {
             return NotFound();
@@ -160,9 +168,12 @@ public class VisitsController : Controller
         return File(png, "image/png");
     }
 
-    private Task<Visit?> LoadAsync(int id) =>
-        _db.Visits
+    private async Task<Visit?> LoadAsync(int id)
+    {
+        var company = await _companyContext.GetActiveAsync();
+        return await _db.Visits
             .Include(v => v.Visitor)
+            .Include(v => v.CompanyProfile)
             .Include(v => v.HostEmployee).ThenInclude(h => h.Department)
             .Include(v => v.VisitorType)
             .Include(v => v.VisitPurpose)
@@ -170,7 +181,8 @@ public class VisitsController : Controller
             .Include(v => v.GateOut)
             .Include(v => v.RegisteredByUser)
             .Include(v => v.CheckedOutByUser)
-            .FirstOrDefaultAsync(v => v.Id == id);
+            .FirstOrDefaultAsync(v => v.Id == id && v.CompanyProfileId == company.Id);
+    }
 
     private string ResolveReturnUrl(string? returnUrl) =>
         LocalReturnUrl.Resolve(

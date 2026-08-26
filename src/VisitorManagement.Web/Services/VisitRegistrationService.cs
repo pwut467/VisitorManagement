@@ -34,6 +34,7 @@ public class VisitRegistrationService : IVisitRegistrationService
     private readonly IPhotoStorageService _photos;
     private readonly IAuditService _audit;
     private readonly ICloudVisitSyncService _cloudSync;
+    private readonly ICompanyContext _companyContext;
 
     public VisitRegistrationService(
         AppDbContext db,
@@ -41,7 +42,8 @@ public class VisitRegistrationService : IVisitRegistrationService
         IBlacklistService blacklist,
         IPhotoStorageService photos,
         IAuditService audit,
-        ICloudVisitSyncService cloudSync)
+        ICloudVisitSyncService cloudSync,
+        ICompanyContext companyContext)
     {
         _db = db;
         _numbers = numbers;
@@ -49,12 +51,16 @@ public class VisitRegistrationService : IVisitRegistrationService
         _photos = photos;
         _audit = audit;
         _cloudSync = cloudSync;
+        _companyContext = companyContext;
     }
 
-    public Task<Visitor?> FindVisitorAsync(string nationalId, CancellationToken cancellationToken = default)
+    public async Task<Visitor?> FindVisitorAsync(string nationalId, CancellationToken cancellationToken = default)
     {
         var id = ThaiNationalId.Normalize(nationalId);
-        return _db.Visitors.FirstOrDefaultAsync(v => v.NationalId == id, cancellationToken);
+        var company = await _companyContext.GetActiveAsync(cancellationToken);
+        return await _db.Visitors.FirstOrDefaultAsync(
+            v => v.CompanyProfileId == company.Id && v.NationalId == id,
+            cancellationToken);
     }
 
     public async Task<VisitOperationResult> RegisterAsync(CheckInViewModel model, string userId, CancellationToken cancellationToken = default)
@@ -108,6 +114,7 @@ public class VisitRegistrationService : IVisitRegistrationService
             return VisitOperationResult.Fail($"บุคคลนี้อยู่ในบัญชีดำ: {blocked.Reason}", blocked);
         }
 
+        var company = await _companyContext.GetActiveAsync(cancellationToken);
         var now = TimeHelper.Now;
         var visitor = await FindVisitorAsync(nationalId, cancellationToken);
         var isNewVisitor = visitor is null;
@@ -115,6 +122,7 @@ public class VisitRegistrationService : IVisitRegistrationService
         {
             visitor = new Visitor
             {
+                CompanyProfileId = company.Id,
                 NationalId = nationalId,
                 Title = model.Title ?? "",
                 FirstName = model.FirstName.Trim(),
@@ -133,7 +141,9 @@ public class VisitRegistrationService : IVisitRegistrationService
         Visit visit;
         if (model.VisitId is int existingId)
         {
-            visit = await _db.Visits.FirstOrDefaultAsync(v => v.Id == existingId, cancellationToken)
+            visit = await _db.Visits.FirstOrDefaultAsync(
+                        v => v.Id == existingId && v.CompanyProfileId == company.Id,
+                        cancellationToken)
                     ?? throw new InvalidOperationException("ไม่พบรายการลงทะเบียนล่วงหน้า");
             if (visit.Status is not VisitStatus.PreRegistered and not VisitStatus.CheckedIn)
             {
@@ -144,7 +154,9 @@ public class VisitRegistrationService : IVisitRegistrationService
         {
             visit = new Visit
             {
-                VisitNumber = await _numbers.NextAsync(now, cancellationToken),
+                CompanyProfileId = company.Id,
+                HostCompanyCode = company.CompanyCode,
+                VisitNumber = await _numbers.NextAsync(now, company.Id, company.CompanyCode, cancellationToken),
                 VisitCode = Guid.NewGuid().ToString("N"),
                 CreatedAt = now,
                 RegisteredByUserId = await ResolveExistingUserIdAsync(userId, cancellationToken)
@@ -155,14 +167,14 @@ public class VisitRegistrationService : IVisitRegistrationService
         var gateId = model.GateId > 0
             ? model.GateId
             : await _db.Gates.Where(g => g.IsActive).Select(g => g.Id).FirstOrDefaultAsync(cancellationToken);
-        var hours = model.ExpectedHours > 0
-            ? model.ExpectedHours
-            : (await _db.CompanyProfiles.Select(c => c.DefaultVisitHours).FirstOrDefaultAsync(cancellationToken));
+        var hours = model.ExpectedHours > 0 ? model.ExpectedHours : company.DefaultVisitHours;
         if (hours <= 0)
         {
             hours = 2;
         }
 
+        visit.CompanyProfileId = company.Id;
+        visit.HostCompanyCode = company.CompanyCode;
         visit.Visitor = visitor!;
         visit.VisitorTypeId = model.VisitorTypeId.Value;
         visit.VisitPurposeId = model.VisitPurposeId.Value;
@@ -307,9 +319,12 @@ public class VisitRegistrationService : IVisitRegistrationService
             key = key[6..];
         }
 
+        var company = await _companyContext.GetActiveAsync(cancellationToken);
         var visit = await _db.Visits
             .Include(v => v.Visitor)
-            .FirstOrDefaultAsync(v => v.VisitCode == key || v.VisitNumber == key, cancellationToken);
+            .FirstOrDefaultAsync(
+                v => v.CompanyProfileId == company.Id && (v.VisitCode == key || v.VisitNumber == key),
+                cancellationToken);
 
         if (visit is null)
         {

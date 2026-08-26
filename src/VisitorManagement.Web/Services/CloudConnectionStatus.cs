@@ -281,7 +281,10 @@ public sealed class CloudOptionsProvider : ICloudOptionsProvider
         {
             using var scope = _scopes.CreateScope();
             var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-            var profile = await db.CompanyProfiles.AsNoTracking().FirstOrDefaultAsync(cancellationToken);
+            var profile = await db.CompanyProfiles.AsNoTracking()
+                .OrderByDescending(c => c.IsActive)
+                .ThenBy(c => c.Id)
+                .FirstOrDefaultAsync(cancellationToken);
             if (profile is not null)
             {
                 opts.Enabled = profile.CloudEnabled;

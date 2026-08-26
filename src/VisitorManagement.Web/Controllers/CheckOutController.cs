@@ -14,11 +14,13 @@ public class CheckOutController : Controller
 {
     private readonly AppDbContext _db;
     private readonly IVisitRegistrationService _registration;
+    private readonly ICompanyContext _companyContext;
 
-    public CheckOutController(AppDbContext db, IVisitRegistrationService registration)
+    public CheckOutController(AppDbContext db, IVisitRegistrationService registration, ICompanyContext companyContext)
     {
         _db = db;
         _registration = registration;
+        _companyContext = companyContext;
     }
 
     [HttpGet]
@@ -71,11 +73,13 @@ public class CheckOutController : Controller
             key = key[6..];
         }
 
+        var company = await _companyContext.GetActiveAsync();
         var visit = await _db.Visits
             .Include(v => v.Visitor)
             .Include(v => v.HostEmployee)
             .Include(v => v.VisitorType)
-            .FirstOrDefaultAsync(v => v.VisitCode == key || v.VisitNumber == key);
+            .FirstOrDefaultAsync(v =>
+                v.CompanyProfileId == company.Id && (v.VisitCode == key || v.VisitNumber == key));
 
         if (visit is null)
         {
