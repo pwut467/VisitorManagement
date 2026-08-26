@@ -78,6 +78,14 @@ public class Visit
 
     public DateTime CreatedAt { get; set; }
 
+    /// <summary>True when this visit row has been successfully pushed to the cloud database.</summary>
+    public bool CloudSynced { get; set; }
+
+    public DateTime? CloudSyncedAt { get; set; }
+
+    [MaxLength(400)]
+    public string? CloudSyncError { get; set; }
+
     public ICollection<VisitItem> Items { get; set; } = new List<VisitItem>();
 
     public bool IsOnSite => Status == VisitStatus.CheckedIn;

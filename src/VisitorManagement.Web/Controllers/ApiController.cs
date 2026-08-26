@@ -13,11 +13,13 @@ public class ApiController : Controller
 {
     private readonly AppDbContext _db;
     private readonly IBlacklistService _blacklist;
+    private readonly ICloudConnectionStatus _cloudStatus;
 
-    public ApiController(AppDbContext db, IBlacklistService blacklist)
+    public ApiController(AppDbContext db, IBlacklistService blacklist, ICloudConnectionStatus cloudStatus)
     {
         _db = db;
         _blacklist = blacklist;
+        _cloudStatus = cloudStatus;
     }
 
     [HttpGet("visitors/by-national-id")]
@@ -67,4 +69,24 @@ public class ApiController : Controller
         return Json(list);
     }
 
+    [HttpGet("cloud/status")]
+    public IActionResult CloudStatus()
+    {
+        var s = _cloudStatus.Current;
+        return Json(new
+        {
+            enabled = s.Enabled,
+            online = s.Online,
+            server = s.Server,
+            database = s.Database,
+            lastCheckedAt = s.LastCheckedAt?.ToString("dd/MM/yyyy HH:mm:ss"),
+            lastError = s.LastError,
+            pendingSyncCount = s.PendingSyncCount,
+            label = !s.Enabled
+                ? "Cloud ปิดใช้งาน"
+                : s.Online
+                    ? (s.PendingSyncCount > 0 ? $"Cloud ออนไลน์ · ค้างซิงก์ {s.PendingSyncCount}" : "Cloud ออนไลน์")
+                    : "Cloud ออฟไลน์"
+        });
+    }
 }

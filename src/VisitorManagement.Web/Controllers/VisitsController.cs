@@ -13,11 +13,13 @@ public class VisitsController : Controller
 {
     private readonly AppDbContext _db;
     private readonly IQrCodeService _qr;
+    private readonly ICloudVisitSyncService _cloudSync;
 
-    public VisitsController(AppDbContext db, IQrCodeService qr)
+    public VisitsController(AppDbContext db, IQrCodeService qr, ICloudVisitSyncService cloudSync)
     {
         _db = db;
         _qr = qr;
+        _cloudSync = cloudSync;
     }
 
     public async Task<IActionResult> Index(VisitListFilter filter)
@@ -142,7 +144,10 @@ public class VisitsController : Controller
 
         visit.Status = VisitStatus.Cancelled;
         visit.Notes = string.IsNullOrWhiteSpace(visit.Notes) ? reason : visit.Notes + " | ยกเลิก: " + reason;
+        visit.CloudSynced = false;
+        visit.CloudSyncError = null;
         await _db.SaveChangesAsync();
+        await _cloudSync.TrySyncVisitAsync(visit.Id);
         TempData["Success"] = "ยกเลิกรายการแล้ว";
         return RedirectToAction(nameof(Details), new { id, returnUrl });
     }

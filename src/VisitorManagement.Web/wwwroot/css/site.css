@@ -316,10 +316,6 @@ tr.overstay {
   box-shadow: inset 4px 0 0 #e11d48;
 }
 
-tr.overstay > * {
-  /* keep striped backgrounds; only mark overstay with the left bar */
-}
-
 .dataTables_wrapper .dataTables_length,
 .dataTables_wrapper .dataTables_filter,
 .dataTables_wrapper .dataTables_info,
@@ -340,10 +336,6 @@ tr.overstay > * {
   background: var(--vm-teal) !important;
   border-color: var(--vm-teal) !important;
   color: #fff !important;
-}
-
-.overstay {
-  /* left bar is applied via tr.overstay box-shadow */
 }
 
 .toast-container {
@@ -436,6 +428,62 @@ button.btn:active {
   .main {
     margin-left: 0;
   }
+}
+
+.cloud-status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: .45rem;
+  max-width: min(360px, 46vw);
+  padding: .35rem .7rem;
+  border-radius: .7rem;
+  font-size: .78rem;
+  font-weight: 600;
+  line-height: 1.2;
+  border: 1px solid transparent;
+}
+
+.cloud-status-badge i {
+  font-size: 1rem;
+}
+
+.cloud-status-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.cloud-status-detail {
+  font-size: .68rem;
+  font-weight: 500;
+  opacity: .85;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cloud-online {
+  background: #ecfdf5;
+  color: #047857;
+  border-color: #a7f3d0;
+}
+
+.cloud-pending {
+  background: #fffbeb;
+  color: #b45309;
+  border-color: #fde68a;
+}
+
+.cloud-offline {
+  background: #fff1f2;
+  color: #be123c;
+  border-color: #fecdd3;
+}
+
+.cloud-disabled {
+  background: #f1f5f9;
+  color: #64748b;
+  border-color: #e2e8f0;
 }
 
 @media print {

@@ -33,19 +33,22 @@ public class VisitRegistrationService : IVisitRegistrationService
     private readonly IBlacklistService _blacklist;
     private readonly IPhotoStorageService _photos;
     private readonly IAuditService _audit;
+    private readonly ICloudVisitSyncService _cloudSync;
 
     public VisitRegistrationService(
         AppDbContext db,
         IVisitNumberService numbers,
         IBlacklistService blacklist,
         IPhotoStorageService photos,
-        IAuditService audit)
+        IAuditService audit,
+        ICloudVisitSyncService cloudSync)
     {
         _db = db;
         _numbers = numbers;
         _blacklist = blacklist;
         _photos = photos;
         _audit = audit;
+        _cloudSync = cloudSync;
     }
 
     public Task<Visitor?> FindVisitorAsync(string nationalId, CancellationToken cancellationToken = default)
@@ -208,6 +211,11 @@ public class VisitRegistrationService : IVisitRegistrationService
             visit.VisitNumber,
             null);
 
+        visit.CloudSynced = false;
+        visit.CloudSyncError = null;
+        await _db.SaveChangesAsync(cancellationToken);
+        await _cloudSync.TrySyncVisitAsync(visit.Id, cancellationToken);
+
         return VisitOperationResult.Ok(visit);
     }
 
@@ -320,6 +328,12 @@ public class VisitRegistrationService : IVisitRegistrationService
 
         await _db.SaveChangesAsync(cancellationToken);
         await _audit.WriteAsync(userId, "check-out", nameof(Visit), visit.Id.ToString(), visit.VisitNumber, null);
+
+        visit.CloudSynced = false;
+        visit.CloudSyncError = null;
+        await _db.SaveChangesAsync(cancellationToken);
+        await _cloudSync.TrySyncVisitAsync(visit.Id, cancellationToken);
+
         return VisitOperationResult.Ok(visit);
     }
 }

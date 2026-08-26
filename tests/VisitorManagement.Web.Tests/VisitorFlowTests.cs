@@ -344,7 +344,7 @@ internal static class TestDb
     };
 
     public static VisitRegistrationService CreateRegistration(AppDbContext db) =>
-        new(db, new VisitNumberService(db), new BlacklistService(db), new NullPhotos(), new AuditService(db));
+        new(db, new VisitNumberService(db), new BlacklistService(db), new NullPhotos(), new AuditService(db), new NullCloudSync());
 
     private sealed class NullPhotos : IPhotoStorageService
     {
@@ -352,5 +352,17 @@ internal static class TestDb
             Task.FromResult<string?>(null);
 
         public string? PublicUrl(string? relativePath) => relativePath;
+    }
+
+    private sealed class NullCloudSync : ICloudVisitSyncService
+    {
+        public Task<bool> TrySyncVisitAsync(int visitId, CancellationToken cancellationToken = default) =>
+            Task.FromResult(false);
+
+        public Task<int> SyncPendingAsync(CancellationToken cancellationToken = default) =>
+            Task.FromResult(0);
+
+        public Task<bool> ProbeAsync(CancellationToken cancellationToken = default) =>
+            Task.FromResult(false);
     }
 }
