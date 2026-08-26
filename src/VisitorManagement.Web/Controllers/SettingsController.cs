@@ -69,8 +69,25 @@ public class SettingsController : Controller
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> TestCloud()
+    public async Task<IActionResult> TestCloud(SettingsViewModel model)
     {
+        var c = await _db.CompanyProfiles.FirstAsync();
+        c.CloudEnabled = model.CloudEnabled;
+        c.CloudServer = string.IsNullOrWhiteSpace(model.CloudServer) ? "192.168.11.204" : model.CloudServer.Trim();
+        c.CloudDatabase = string.IsNullOrWhiteSpace(model.CloudDatabase) ? "VisitorManagment" : model.CloudDatabase.Trim();
+        c.CloudUseWindowsAuth = model.CloudUseWindowsAuth;
+        c.CloudUserId = model.CloudUserId?.Trim();
+        if (!string.IsNullOrWhiteSpace(model.CloudPassword))
+        {
+            c.CloudPassword = model.CloudPassword;
+        }
+        else if (model.CloudUseWindowsAuth)
+        {
+            c.CloudPassword = null;
+        }
+
+        await _db.SaveChangesAsync();
+
         var ok = await _cloudSync.ProbeAsync();
         var snap = _cloudStatus.Current;
         TempData[ok ? "Success" : "Error"] = ok

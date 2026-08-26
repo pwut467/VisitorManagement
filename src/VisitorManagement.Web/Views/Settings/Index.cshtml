@@ -2,95 +2,101 @@
 @{
     ViewData["Title"] = "ตั้งค่าบริษัท / บัตร Visitor";
 }
-<div class="card vm-card p-4 mb-3" style="max-width:760px">
-    <form method="post">
-        <h2 class="h5 mb-3">บริษัท / บัตร</h2>
-        <div class="mb-3">
-            <label asp-for="Name" class="form-label"></label>
-            <input asp-for="Name" class="form-control" />
-        </div>
-        <div class="mb-3">
-            <label asp-for="Address" class="form-label"></label>
-            <input asp-for="Address" class="form-control" />
-        </div>
-        <div class="mb-3">
-            <label asp-for="BadgeFooter" class="form-label"></label>
-            <textarea asp-for="BadgeFooter" class="form-control"></textarea>
-        </div>
-        <div class="mb-3">
-            <label asp-for="DefaultVisitHours" class="form-label"></label>
-            <input asp-for="DefaultVisitHours" class="form-control" type="number" />
-        </div>
-        <div class="mb-3">
-            <label asp-for="OverstayGraceMinutes" class="form-label"></label>
-            <input asp-for="OverstayGraceMinutes" class="form-control" type="number" />
-        </div>
-        <fieldset class="mb-3">
-            <legend class="form-label fs-6">@Html.DisplayNameFor(m => m.AutoPrintBadge)</legend>
-            <div class="form-check">
-                <input class="form-check-input" type="radio" name="AutoPrintBadge" value="true" id="print-direct" @(Model.AutoPrintBadge ? "checked" : null) />
-                <label class="form-check-label" for="print-direct">พิมพ์ออกเครื่องพิมพ์เลย</label>
-            </div>
-            <div class="form-check">
-                <input class="form-check-input" type="radio" name="AutoPrintBadge" value="false" id="print-preview" @(!Model.AutoPrintBadge ? "checked" : null) />
-                <label class="form-check-label" for="print-preview">แสดงตัวอย่างก่อน (Print Preview)</label>
-            </div>
-        </fieldset>
-
-        <hr class="my-4" />
-        <h2 class="h5 mb-2">Cloud SQL Server</h2>
-        <p class="text-muted small mb-3">
-            บันทึกที่ Local ก่อน แล้วซิงก์ไป Cloud อัตโนมัติเมื่อเชื่อมต่อได้
-            เซิร์ฟเวอร์เป้าหมาย: <code>192.168.11.204</code> / <code>VisitorManagment</code>
-            — ต้องใช้ <strong>SQL Authentication</strong> (Username/Password) เพราะเครื่องลูกข่ายมักใช้ Windows Auth กับเซิร์ฟเวอร์ระยะไกลไม่ได้
-            และ SQL Server ฝั่ง Cloud ต้องเปิด Remote TCP พอร์ต <code>1433</code>
-        </p>
-        <div class="alert @(Model.CloudOnline ? "alert-success" : "alert-warning") py-2">
-            <strong>@Model.CloudStatusLabel</strong>
-            @if (!string.IsNullOrWhiteSpace(Model.CloudStatusDetail))
-            {
-                <div class="small mt-1">@Model.CloudStatusDetail</div>
-            }
-        </div>
-        <div class="form-check form-switch mb-3">
-            <input asp-for="CloudEnabled" class="form-check-input" />
-            <label asp-for="CloudEnabled" class="form-check-label"></label>
-        </div>
-        <div class="row g-2">
-            <div class="col-md-6 mb-3">
-                <label asp-for="CloudServer" class="form-label"></label>
-                <input asp-for="CloudServer" class="form-control" placeholder="192.168.11.204" />
-            </div>
-            <div class="col-md-6 mb-3">
-                <label asp-for="CloudDatabase" class="form-label"></label>
-                <input asp-for="CloudDatabase" class="form-control" placeholder="VisitorManagment" />
-            </div>
-        </div>
-        <div class="form-check mb-3">
-            <input asp-for="CloudUseWindowsAuth" class="form-check-input" id="cloud-winauth" />
-            <label asp-for="CloudUseWindowsAuth" class="form-check-label"></label>
-            <div class="form-text">ถ้า Cloud เป็นเครื่องอื่นในวง LAN ส่วนใหญ่ต้องใช้ SQL Auth (ยกเลิกช่องนี้)</div>
-        </div>
-        <div class="row g-2" id="cloud-sqlauth">
-            <div class="col-md-6 mb-3">
-                <label asp-for="CloudUserId" class="form-label"></label>
-                <input asp-for="CloudUserId" class="form-control" autocomplete="username" placeholder="เช่น sa หรือ VisitorApp" />
-            </div>
-            <div class="col-md-6 mb-3">
-                <label asp-for="CloudPassword" class="form-label"></label>
-                <input asp-for="CloudPassword" class="form-control" autocomplete="new-password" placeholder="@(Model.CloudPasswordSet ? "•••••••• (ว่างไว้ถ้าไม่เปลี่ยน)" : "รหัสผ่าน Cloud SQL")" />
+<form method="post" id="settings-form">
+    @Html.AntiForgeryToken()
+    <div class="row g-3 align-items-start">
+        <div class="col-lg-7">
+            <div class="card vm-card p-4 h-100">
+                <h2 class="h5 mb-3">บริษัท / บัตร</h2>
+                <div class="mb-3">
+                    <label asp-for="Name" class="form-label"></label>
+                    <input asp-for="Name" class="form-control" />
+                </div>
+                <div class="mb-3">
+                    <label asp-for="Address" class="form-label"></label>
+                    <input asp-for="Address" class="form-control" />
+                </div>
+                <div class="mb-3">
+                    <label asp-for="BadgeFooter" class="form-label"></label>
+                    <textarea asp-for="BadgeFooter" class="form-control" rows="3"></textarea>
+                </div>
+                <div class="row g-2">
+                    <div class="col-md-6 mb-3">
+                        <label asp-for="DefaultVisitHours" class="form-label"></label>
+                        <input asp-for="DefaultVisitHours" class="form-control" type="number" />
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label asp-for="OverstayGraceMinutes" class="form-label"></label>
+                        <input asp-for="OverstayGraceMinutes" class="form-control" type="number" />
+                    </div>
+                </div>
+                <fieldset class="mb-3">
+                    <legend class="form-label fs-6">@Html.DisplayNameFor(m => m.AutoPrintBadge)</legend>
+                    <div class="form-check">
+                        <input class="form-check-input" type="radio" name="AutoPrintBadge" value="true" id="print-direct" @(Model.AutoPrintBadge ? "checked" : null) />
+                        <label class="form-check-label" for="print-direct">พิมพ์ออกเครื่องพิมพ์เลย</label>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="radio" name="AutoPrintBadge" value="false" id="print-preview" @(!Model.AutoPrintBadge ? "checked" : null) />
+                        <label class="form-check-label" for="print-preview">แสดงตัวอย่างก่อน (Print Preview)</label>
+                    </div>
+                </fieldset>
+                <button class="btn btn-teal" type="submit">บันทึก</button>
             </div>
         </div>
 
-        <div class="d-flex flex-wrap gap-2">
-            <button class="btn btn-teal" type="submit">บันทึก</button>
+        <div class="col-lg-5">
+            <div class="card vm-card p-4 h-100">
+                <h2 class="h5 mb-2">Cloud SQL Server</h2>
+                <p class="text-muted small mb-3">
+                    บันทึก Local ก่อน แล้วซิงก์ไป Cloud เมื่อเชื่อมต่อได้
+                    ใช้ <strong>SQL Auth</strong> และเปิด TCP พอร์ต <code>1433</code> ฝั่งเซิร์ฟเวอร์
+                </p>
+                <div class="alert @(Model.CloudOnline ? "alert-success" : "alert-warning") py-2 mb-3">
+                    <strong>@Model.CloudStatusLabel</strong>
+                    @if (!string.IsNullOrWhiteSpace(Model.CloudStatusDetail))
+                    {
+                        <div class="small mt-1">@Model.CloudStatusDetail</div>
+                    }
+                </div>
+                <div class="form-check form-switch mb-3">
+                    <input asp-for="CloudEnabled" class="form-check-input" />
+                    <label asp-for="CloudEnabled" class="form-check-label"></label>
+                </div>
+                <div class="mb-3">
+                    <label asp-for="CloudServer" class="form-label"></label>
+                    <input asp-for="CloudServer" class="form-control" placeholder="192.168.11.204" />
+                </div>
+                <div class="mb-3">
+                    <label asp-for="CloudDatabase" class="form-label"></label>
+                    <input asp-for="CloudDatabase" class="form-control" placeholder="VisitorManagment" />
+                </div>
+                <div class="form-check mb-3">
+                    <input asp-for="CloudUseWindowsAuth" class="form-check-input" id="cloud-winauth" />
+                    <label asp-for="CloudUseWindowsAuth" class="form-check-label"></label>
+                    <div class="form-text">เครื่องอื่นใน LAN ส่วนใหญ่ต้องใช้ SQL Auth</div>
+                </div>
+                <div id="cloud-sqlauth">
+                    <div class="mb-3">
+                        <label asp-for="CloudUserId" class="form-label"></label>
+                        <input asp-for="CloudUserId" class="form-control" autocomplete="username" placeholder="เช่น sa หรือ VisitorApp" />
+                    </div>
+                    <div class="mb-3">
+                        <label asp-for="CloudPassword" class="form-label"></label>
+                        <input asp-for="CloudPassword" class="form-control" autocomplete="new-password" placeholder="@(Model.CloudPasswordSet ? "•••••••• (ว่างไว้ถ้าไม่เปลี่ยน)" : "รหัสผ่าน Cloud SQL")" />
+                    </div>
+                </div>
+                <div class="d-flex flex-wrap gap-2">
+                    <button class="btn btn-teal" type="submit">บันทึก</button>
+                    <button class="btn btn-outline-primary" type="submit"
+                            formaction="@Url.Action("TestCloud")" formmethod="post">
+                        ทดสอบการเชื่อมต่อ
+                    </button>
+                </div>
+            </div>
         </div>
-    </form>
-    <form asp-action="TestCloud" method="post" class="mt-2">
-        @Html.AntiForgeryToken()
-        <button class="btn btn-outline-primary" type="submit">ทดสอบการเชื่อมต่อ Cloud</button>
-    </form>
-</div>
+    </div>
+</form>
 
 @section Scripts {
     <script>
