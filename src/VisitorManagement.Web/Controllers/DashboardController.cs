@@ -35,8 +35,7 @@ public class DashboardController : Controller
             OnSiteCount = onSite.Count,
             TodayCheckIns = await visits.CountAsync(v => v.CheckInAt >= today && v.CheckInAt < tomorrow),
             TodayCheckOuts = await visits.CountAsync(v => v.CheckOutAt >= today && v.CheckOutAt < tomorrow),
-            OnSite = onSite.Take(8).ToList(),
-            Recent = await visits.OrderByDescending(v => v.CreatedAt).Take(8).ToListAsync()
+            OnSite = onSite.Take(8).ToList()
         };
 
         var todayIns = await _db.Visits

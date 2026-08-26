@@ -30,85 +30,62 @@
     </div>
 </div>
 
-<div class="row g-3">
-    <div class="col-lg-8">
-        <div class="card vm-card p-3 mb-3">
-            <div class="d-flex justify-content-between align-items-center mb-2">
-                <h2 class="h6 mb-0">ผู้ที่อยู่ในพื้นที่</h2>
-                <a class="link-accent" asp-controller="Visits" asp-action="OnSite">ดูทั้งหมด</a>
-            </div>
-            <div class="table-responsive">
-                <table class="table table-dashboard table-striped table-hover align-middle mb-0">
-                    <thead>
-                    <tr>
-                        <th class="col-seq text-center">ลำดับ</th>
-                        <th>บัตร</th>
-                        <th>ผู้มาติดต่อ</th>
-                        <th>ทะเบียนรถ</th>
-                        <th>มาหา</th>
-                        <th>เข้าเมื่อ</th>
-                        <th></th>
-                    </tr>
-                    </thead>
-                    <tbody>
-                    @if (!Model.OnSite.Any())
-                    {
-                        <tr><td colspan="7" class="text-muted">ยังไม่มีผู้มาติดต่อในพื้นที่</td></tr>
-                    }
-                    @foreach (var v in Model.OnSite)
-                    {
-                        var stripe = (++seq % 2 == 1) ? "row-odd" : "row-even";
-                        <tr class="@stripe">
-                            <td class="col-seq text-center">@seq</td>
-                            <td class="fw-semibold text-nowrap">@v.VisitNumber</td>
-                            <td>@v.Visitor.FullName<br /><span class="small text-muted">@v.CompanyName</span></td>
-                            <td class="text-nowrap">@(string.IsNullOrWhiteSpace(v.VehiclePlate) ? "—" : v.VehiclePlate)</td>
-                            <td>@v.HostEmployee.FullName</td>
-                            <td>@v.CheckInAt?.ToString("HH:mm")</td>
-                            <td class="text-nowrap">
-                                <a class="btn btn-sm btn-outline-primary" asp-controller="Visits" asp-action="Details" asp-route-id="@v.Id" asp-route-returnUrl="@here">รายละเอียด</a>
-                                <a class="btn btn-sm btn-outline-secondary" asp-controller="Visits" asp-action="Badge" asp-route-id="@v.Id" asp-route-returnUrl="@here">พิมพ์ซ้ำ</a>
-                            </td>
-                        </tr>
-                    }
-                    </tbody>
-                </table>
-            </div>
-        </div>
-        <div class="card vm-card p-3">
-            <h2 class="h6">Check-in รายชั่วโมงวันนี้</h2>
-            <div class="hour-bar mt-2">
-                @foreach (var h in Model.Hourly)
-                {
-                    var height = (int)Math.Round(100.0 * h.Count / maxHour);
-                    <div class="bar" title="@h.Label:00 = @h.Count" style="height:@(Math.Max(6, height))%"></div>
-                }
-            </div>
-            <div class="d-flex justify-content-between small text-muted mt-1">
-                @foreach (var h in Model.Hourly)
-                {
-                    <span>@h.Label</span>
-                }
-            </div>
-        </div>
+<div class="card vm-card p-3 mb-3">
+    <div class="d-flex justify-content-between align-items-center mb-2">
+        <h2 class="h6 mb-0">ผู้ที่อยู่ในพื้นที่</h2>
+        <a class="link-accent" asp-controller="Visits" asp-action="OnSite">ดูทั้งหมด</a>
     </div>
-    <div class="col-lg-4">
-        <div class="card vm-card p-3">
-            <h2 class="h6">ล่าสุด</h2>
-            @if (!Model.Recent.Any())
+    <div class="table-responsive">
+        <table class="table table-dashboard table-striped table-hover align-middle mb-0">
+            <thead>
+            <tr>
+                <th class="col-seq text-center">ลำดับ</th>
+                <th>บัตร</th>
+                <th>ผู้มาติดต่อ</th>
+                <th>ทะเบียนรถ</th>
+                <th>มาหา</th>
+                <th>เข้าเมื่อ</th>
+                <th></th>
+            </tr>
+            </thead>
+            <tbody>
+            @if (!Model.OnSite.Any())
             {
-                <p class="text-muted mb-0">ยังไม่มีรายการ</p>
+                <tr><td colspan="7" class="text-muted">ยังไม่มีผู้มาติดต่อในพื้นที่</td></tr>
             }
-            @foreach (var v in Model.Recent)
+            @foreach (var v in Model.OnSite)
             {
-                <div class="recent-row py-2">
-                    <div class="d-flex justify-content-between gap-2">
-                        <a asp-controller="Visits" asp-action="Details" asp-route-id="@v.Id" asp-route-returnUrl="@here">@v.VisitNumber</a>
-                        <span class="status-pill status-@v.Status.ToString().ToLowerInvariant()">@v.Status</span>
-                    </div>
-                    <div class="small text-muted">@v.Visitor.FullName</div>
-                </div>
+                var stripe = (++seq % 2 == 1) ? "row-odd" : "row-even";
+                <tr class="@stripe">
+                    <td class="col-seq text-center">@seq</td>
+                    <td class="fw-semibold text-nowrap">@v.VisitNumber</td>
+                    <td>@v.Visitor.FullName<br /><span class="small text-muted">@v.CompanyName</span></td>
+                    <td class="text-nowrap">@(string.IsNullOrWhiteSpace(v.VehiclePlate) ? "—" : v.VehiclePlate)</td>
+                    <td>@v.HostEmployee.FullName</td>
+                    <td>@v.CheckInAt?.ToString("HH:mm")</td>
+                    <td class="text-nowrap">
+                        <a class="btn btn-sm btn-outline-primary" asp-controller="Visits" asp-action="Details" asp-route-id="@v.Id" asp-route-returnUrl="@here">รายละเอียด</a>
+                        <a class="btn btn-sm btn-outline-secondary" asp-controller="Visits" asp-action="Badge" asp-route-id="@v.Id" asp-route-returnUrl="@here">พิมพ์ซ้ำ</a>
+                    </td>
+                </tr>
             }
-        </div>
+            </tbody>
+        </table>
+    </div>
+</div>
+<div class="card vm-card p-3">
+    <h2 class="h6">Check-in รายชั่วโมงวันนี้</h2>
+    <div class="hour-bar mt-2">
+        @foreach (var h in Model.Hourly)
+        {
+            var height = (int)Math.Round(100.0 * h.Count / maxHour);
+            <div class="bar" title="@h.Label:00 = @h.Count" style="height:@(Math.Max(6, height))%"></div>
+        }
+    </div>
+    <div class="d-flex justify-content-between small text-muted mt-1">
+        @foreach (var h in Model.Hourly)
+        {
+            <span>@h.Label</span>
+        }
     </div>
 </div>
