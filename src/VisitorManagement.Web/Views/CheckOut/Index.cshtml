@@ -14,7 +14,10 @@
                     <input type="hidden" name="returnUrl" value="@returnUrl" />
                 }
                 <label class="form-label">รหัสบัตร / Visit Number</label>
-                <input name="code" id="code" class="form-control form-control-lg mb-3" value="@ViewBag.Code" autofocus placeholder="สแกนที่นี่" />
+                <input name="code" id="code" class="form-control form-control-lg mb-3"
+                       value="@ViewBag.Code" autofocus placeholder="สแกนที่นี่"
+                       lang="en" inputmode="latin" spellcheck="false" autocomplete="off"
+                       title="ช่องนี้ใช้ภาษาอังกฤษ (ถ้าคีย์บอร์ดเป็นไทย ระบบจะแปลงให้อัตโนมัติ)" />
                 <label class="form-label">จุดออก</label>
                 <select name="gateOutId" class="form-select mb-3" asp-items="gates"></select>
                 <label class="form-label">หมายเหตุ (เช่น บัตรหาย)</label>
