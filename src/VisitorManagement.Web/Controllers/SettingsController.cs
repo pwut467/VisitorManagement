@@ -14,18 +14,24 @@ public class SettingsController : Controller
     private readonly AppDbContext _db;
     private readonly ICloudVisitSyncService _cloudSync;
     private readonly ICloudConnectionStatus _cloudStatus;
+    private readonly ICloudOptionsProvider _cloudOptions;
 
-    public SettingsController(AppDbContext db, ICloudVisitSyncService cloudSync, ICloudConnectionStatus cloudStatus)
+    public SettingsController(
+        AppDbContext db,
+        ICloudVisitSyncService cloudSync,
+        ICloudConnectionStatus cloudStatus,
+        ICloudOptionsProvider cloudOptions)
     {
         _db = db;
         _cloudSync = cloudSync;
         _cloudStatus = cloudStatus;
+        _cloudOptions = cloudOptions;
     }
 
     public async Task<IActionResult> Index()
     {
         var c = await _db.CompanyProfiles.FirstAsync();
-        return View(ToModel(c));
+        return View(await ToModelAsync(c));
     }
 
     [HttpPost]
@@ -35,7 +41,13 @@ public class SettingsController : Controller
         if (!ModelState.IsValid)
         {
             var current = await _db.CompanyProfiles.FirstAsync();
-            model.CloudPasswordSet = !string.IsNullOrEmpty(current.CloudPassword);
+            var opts = await _cloudOptions.GetAsync();
+            model.CloudPasswordSet = !string.IsNullOrEmpty(current.CloudPassword) || !string.IsNullOrEmpty(opts.Password);
+            if (string.IsNullOrWhiteSpace(model.CloudUserId))
+            {
+                model.CloudUserId = opts.UserId;
+            }
+
             ApplyStatus(model);
             return View(model);
         }
@@ -63,7 +75,10 @@ public class SettingsController : Controller
 
         await _db.SaveChangesAsync();
         await _cloudSync.ProbeAsync();
-        TempData["Success"] = "บันทึกการตั้งค่าแล้ว";
+        var synced = await _cloudSync.SyncPendingAsync();
+        TempData["Success"] = synced > 0
+            ? $"บันทึกการตั้งค่าแล้ว และซิงก์ไป Cloud {synced} รายการ"
+            : "บันทึกการตั้งค่าแล้ว";
         return RedirectToAction(nameof(Index));
     }
 
@@ -90,14 +105,44 @@ public class SettingsController : Controller
 
         var ok = await _cloudSync.ProbeAsync();
         var snap = _cloudStatus.Current;
-        TempData[ok ? "Success" : "Error"] = ok
-            ? $"เชื่อมต่อ Cloud สำเร็จ — {snap.Server}/{snap.Database}"
-            : $"เชื่อมต่อ Cloud ไม่สำเร็จ — {snap.LastError}";
+        if (!ok)
+        {
+            TempData["Error"] = $"เชื่อมต่อ Cloud ไม่สำเร็จ — {snap.LastError}";
+            return RedirectToAction(nameof(Index));
+        }
+
+        var synced = await _cloudSync.SyncPendingAsync();
+        TempData["Success"] = synced > 0
+            ? $"เชื่อมต่อ Cloud สำเร็จ — {snap.Server}/{snap.Database} · ซิงก์แล้ว {synced} รายการ"
+            : $"เชื่อมต่อ Cloud สำเร็จ — {snap.Server}/{snap.Database}";
         return RedirectToAction(nameof(Index));
     }
 
-    private SettingsViewModel ToModel(CompanyProfile c)
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> SyncPending()
     {
+        var ok = await _cloudSync.ProbeAsync();
+        if (!ok)
+        {
+            var snap = _cloudStatus.Current;
+            TempData["Error"] = $"ซิงก์ไม่สำเร็จ — {snap.LastError}";
+            return RedirectToAction(nameof(Index));
+        }
+
+        var synced = await _cloudSync.SyncPendingAsync();
+        var pending = _cloudStatus.Current.PendingSyncCount;
+        TempData["Success"] = synced > 0
+            ? $"ซิงก์ไป Cloud แล้ว {synced} รายการ" + (pending > 0 ? $" (ยังค้าง {pending})" : "")
+            : pending > 0
+                ? $"ไม่มีการซิงก์สำเร็จ — ยังค้าง {pending} รายการ (ดู CloudSyncError ในรายละเอียดบัตร)"
+                : "ไม่มีรายการค้างซิงก์";
+        return RedirectToAction(nameof(Index));
+    }
+
+    private async Task<SettingsViewModel> ToModelAsync(CompanyProfile c)
+    {
+        var opts = await _cloudOptions.GetAsync();
         var model = new SettingsViewModel
         {
             Name = c.Name,
@@ -107,11 +152,11 @@ public class SettingsController : Controller
             OverstayGraceMinutes = c.OverstayGraceMinutes,
             AutoPrintBadge = c.AutoPrintBadge,
             CloudEnabled = c.CloudEnabled,
-            CloudServer = c.CloudServer,
-            CloudDatabase = c.CloudDatabase,
+            CloudServer = string.IsNullOrWhiteSpace(c.CloudServer) ? opts.Server : c.CloudServer,
+            CloudDatabase = string.IsNullOrWhiteSpace(c.CloudDatabase) ? opts.Database : c.CloudDatabase,
             CloudUseWindowsAuth = c.CloudUseWindowsAuth,
-            CloudUserId = c.CloudUserId,
-            CloudPasswordSet = !string.IsNullOrEmpty(c.CloudPassword)
+            CloudUserId = string.IsNullOrWhiteSpace(c.CloudUserId) ? opts.UserId : c.CloudUserId,
+            CloudPasswordSet = !string.IsNullOrEmpty(c.CloudPassword) || !string.IsNullOrEmpty(opts.Password)
         };
         ApplyStatus(model);
         return model;

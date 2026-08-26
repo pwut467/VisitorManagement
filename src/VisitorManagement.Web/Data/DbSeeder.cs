@@ -33,6 +33,9 @@ public static class DbSeeder
             }
         }
 
+        var config = scope.ServiceProvider.GetService<IConfiguration>();
+        var cloudOpts = config is null ? new CloudOptions() : CloudOptions.FromConfiguration(config);
+
         if (!await db.CompanyProfiles.AnyAsync())
         {
             db.CompanyProfiles.Add(new CompanyProfile
@@ -45,21 +48,41 @@ public static class DbSeeder
                 AutoPrintBadge = true,
                 SeedRevision = 1,
                 CloudEnabled = true,
-                CloudServer = "192.168.11.204",
-                CloudDatabase = "VisitorManagment",
-                CloudUseWindowsAuth = false
+                CloudServer = string.IsNullOrWhiteSpace(cloudOpts.Server) ? "192.168.11.204" : cloudOpts.Server,
+                CloudDatabase = string.IsNullOrWhiteSpace(cloudOpts.Database) ? "VisitorManagment" : cloudOpts.Database,
+                CloudUseWindowsAuth = cloudOpts.UseWindowsAuth,
+                CloudUserId = cloudOpts.UserId,
+                CloudPassword = cloudOpts.Password
             });
             await db.SaveChangesAsync();
         }
         else
         {
             var company = await db.CompanyProfiles.FirstAsync();
+            var dirty = false;
             if (string.IsNullOrWhiteSpace(company.CloudServer))
             {
                 company.CloudEnabled = true;
-                company.CloudServer = "192.168.11.204";
-                company.CloudDatabase = "VisitorManagment";
+                company.CloudServer = string.IsNullOrWhiteSpace(cloudOpts.Server) ? "192.168.11.204" : cloudOpts.Server;
+                company.CloudDatabase = string.IsNullOrWhiteSpace(cloudOpts.Database) ? "VisitorManagment" : cloudOpts.Database;
                 company.CloudUseWindowsAuth = false;
+                dirty = true;
+            }
+
+            if (string.IsNullOrWhiteSpace(company.CloudUserId) && !string.IsNullOrWhiteSpace(cloudOpts.UserId))
+            {
+                company.CloudUserId = cloudOpts.UserId;
+                dirty = true;
+            }
+
+            if (string.IsNullOrEmpty(company.CloudPassword) && !string.IsNullOrEmpty(cloudOpts.Password))
+            {
+                company.CloudPassword = cloudOpts.Password;
+                dirty = true;
+            }
+
+            if (dirty)
+            {
                 await db.SaveChangesAsync();
             }
         }

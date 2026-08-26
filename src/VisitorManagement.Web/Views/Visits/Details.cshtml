@@ -35,6 +35,25 @@
                         <dt>เวลาออก</dt><dd>@(Model.CheckOutAt?.ToString("dd/MM/yyyy HH:mm") ?? "-")</dd>
                         <dt>รถ</dt><dd>@(string.IsNullOrWhiteSpace(Model.VehiclePlate) ? "-" : $"{Model.VehicleType} {Model.VehiclePlate}".Trim())</dd>
                         <dt>ผู้ติดตาม</dt><dd>@Model.AccompanyingCount คน</dd>
+                        <dt>Cloud</dt>
+                        <dd>
+                            @if (Model.CloudSynced)
+                            {
+                                <span class="text-success">ซิงก์แล้ว</span>
+                                @if (Model.CloudSyncedAt is not null)
+                                {
+                                    <span class="text-muted small">(@Model.CloudSyncedAt.Value.ToString("dd/MM/yyyy HH:mm"))</span>
+                                }
+                            }
+                            else
+                            {
+                                <span class="text-warning">ยังไม่ซิงก์</span>
+                                @if (!string.IsNullOrWhiteSpace(Model.CloudSyncError))
+                                {
+                                    <div class="small text-danger mt-1">@Model.CloudSyncError</div>
+                                }
+                            }
+                        </dd>
                     </dl>
                 </div>
             </div>

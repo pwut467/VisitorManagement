@@ -1,4 +1,7 @@
+using System.Data;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Storage;
 using VisitorManagement.Web.Data;
 using VisitorManagement.Web.Models;
 
@@ -13,12 +16,13 @@ public interface ICloudVisitSyncService
 
 public sealed class CloudVisitSyncService : ICloudVisitSyncService
 {
+    private static readonly SemaphoreSlim SchemaLock = new(1, 1);
+    private static readonly HashSet<string> ReadySchemas = new(StringComparer.OrdinalIgnoreCase);
+
     private readonly AppDbContext _local;
     private readonly ICloudConnectionStatus _status;
     private readonly ICloudOptionsProvider _optionsProvider;
     private readonly ILogger<CloudVisitSyncService> _logger;
-    private readonly SemaphoreSlim _schemaLock = new(1, 1);
-    private bool _schemaReady;
 
     public CloudVisitSyncService(
         AppDbContext local,
@@ -41,7 +45,7 @@ public sealed class CloudVisitSyncService : ICloudVisitSyncService
             return false;
         }
 
-        if (!options.IsConfigured)
+        if (!options.IsConfigured || string.IsNullOrWhiteSpace(options.ConnectionString))
         {
             _status.SetHealth(false, "ยังไม่ได้ตั้งค่า Username/Password ของ Cloud SQL (ไปที่ ตั้งค่าบริษัท)", options);
             return false;
@@ -57,14 +61,15 @@ public sealed class CloudVisitSyncService : ICloudVisitSyncService
                 return false;
             }
 
-            await EnsureCloudSchemaAsync(cloud, cancellationToken);
+            await EnsureCloudSchemaAsync(cloud, options, cancellationToken);
             _status.SetHealth(true, null, options);
+            await RefreshPendingCountAsync(cancellationToken);
             return true;
         }
         catch (Exception ex)
         {
             var message = CloudOptions.DescribeError(ex);
-            _logger.LogWarning(ex, "Cloud SQL health check failed");
+            _logger.LogWarning(ex, "Cloud SQL health check failed for {Server}/{Database}", options.Server, options.Database);
             _status.SetHealth(false, message, options);
             return false;
         }
@@ -73,14 +78,23 @@ public sealed class CloudVisitSyncService : ICloudVisitSyncService
     public async Task<bool> TrySyncVisitAsync(int visitId, CancellationToken cancellationToken = default)
     {
         var options = await _optionsProvider.GetAsync(cancellationToken);
-        if (!options.Enabled || !options.IsConfigured)
+        var visit = await LoadLocalVisitAsync(visitId, cancellationToken);
+        if (visit is null)
         {
             return false;
         }
 
-        var visit = await LoadLocalVisitAsync(visitId, cancellationToken);
-        if (visit is null)
+        if (!options.Enabled)
         {
+            await MarkLocalPendingAsync(visit, "ปิดการซิงก์คลาวด์", cancellationToken);
+            _status.SetHealth(false, "ปิดการซิงก์คลาวด์", options);
+            return false;
+        }
+
+        if (!options.IsConfigured || string.IsNullOrWhiteSpace(options.ConnectionString))
+        {
+            await MarkLocalPendingAsync(visit, "ยังไม่ได้ตั้งค่า Username/Password ของ Cloud SQL", cancellationToken);
+            _status.SetHealth(false, "ยังไม่ได้ตั้งค่า Username/Password ของ Cloud SQL (ไปที่ ตั้งค่าบริษัท)", options);
             return false;
         }
 
@@ -94,7 +108,7 @@ public sealed class CloudVisitSyncService : ICloudVisitSyncService
                 return false;
             }
 
-            await EnsureCloudSchemaAsync(cloud, cancellationToken);
+            await EnsureCloudSchemaAsync(cloud, options, cancellationToken);
             await UpsertVisitAsync(cloud, visit, cancellationToken);
             await cloud.SaveChangesAsync(cancellationToken);
 
@@ -104,12 +118,17 @@ public sealed class CloudVisitSyncService : ICloudVisitSyncService
             await _local.SaveChangesAsync(cancellationToken);
             _status.SetHealth(true, null, options);
             await RefreshPendingCountAsync(cancellationToken);
+            _logger.LogInformation(
+                "Synced visit {VisitNumber} to cloud {Server}/{Database}",
+                visit.VisitNumber,
+                options.Server,
+                options.Database);
             return true;
         }
         catch (Exception ex)
         {
             var message = CloudOptions.DescribeError(ex);
-            _logger.LogWarning(ex, "Failed syncing visit {VisitNumber} to cloud", visit.VisitNumber);
+            _logger.LogWarning(ex, "Failed syncing visit {VisitNumber} to cloud {Server}/{Database}", visit.VisitNumber, options.Server, options.Database);
             await MarkLocalPendingAsync(visit, message, cancellationToken);
             _status.SetHealth(false, message, options);
             return false;
@@ -119,8 +138,9 @@ public sealed class CloudVisitSyncService : ICloudVisitSyncService
     public async Task<int> SyncPendingAsync(CancellationToken cancellationToken = default)
     {
         var options = await _optionsProvider.GetAsync(cancellationToken);
-        if (!options.Enabled || !options.IsConfigured)
+        if (!options.Enabled || !options.IsConfigured || string.IsNullOrWhiteSpace(options.ConnectionString))
         {
+            await RefreshPendingCountAsync(cancellationToken);
             return 0;
         }
 
@@ -160,7 +180,7 @@ public sealed class CloudVisitSyncService : ICloudVisitSyncService
     private async Task MarkLocalPendingAsync(Visit visit, string error, CancellationToken cancellationToken)
     {
         visit.CloudSynced = false;
-        visit.CloudSyncError = error;
+        visit.CloudSyncError = error.Length <= 500 ? error : error[..500];
         await _local.SaveChangesAsync(cancellationToken);
         await RefreshPendingCountAsync(cancellationToken);
     }
@@ -337,29 +357,79 @@ public sealed class CloudVisitSyncService : ICloudVisitSyncService
         return created;
     }
 
-    private async Task EnsureCloudSchemaAsync(AppDbContext cloud, CancellationToken cancellationToken)
+    private async Task EnsureCloudSchemaAsync(AppDbContext cloud, CloudOptions options, CancellationToken cancellationToken)
     {
-        if (_schemaReady)
+        var key = $"{options.Server}|{options.Database}";
+        lock (ReadySchemas)
         {
-            return;
-        }
-
-        await _schemaLock.WaitAsync(cancellationToken);
-        try
-        {
-            if (_schemaReady)
+            if (ReadySchemas.Contains(key))
             {
                 return;
             }
+        }
 
-            // Cloud may be a fresh Enterprise database — create schema without relying on migration history.
-            await cloud.Database.EnsureCreatedAsync(cancellationToken);
-            _schemaReady = true;
+        await SchemaLock.WaitAsync(cancellationToken);
+        try
+        {
+            lock (ReadySchemas)
+            {
+                if (ReadySchemas.Contains(key))
+                {
+                    return;
+                }
+            }
+
+            if (!await CloudHasVisitsTableAsync(cloud, cancellationToken))
+            {
+                try
+                {
+                    await cloud.Database.MigrateAsync(cancellationToken);
+                }
+                catch (Exception migrateEx)
+                {
+                    _logger.LogWarning(migrateEx, "Cloud MigrateAsync failed; trying CreateTables for {Key}", key);
+                    try
+                    {
+                        var creator = cloud.Database.GetService<IRelationalDatabaseCreator>();
+                        await creator.CreateTablesAsync(cancellationToken);
+                    }
+                    catch (Exception createEx)
+                    {
+                        _logger.LogWarning(createEx, "Cloud CreateTables failed; trying EnsureCreated for {Key}", key);
+                        await cloud.Database.EnsureCreatedAsync(cancellationToken);
+                    }
+                }
+
+                if (!await CloudHasVisitsTableAsync(cloud, cancellationToken))
+                {
+                    throw new InvalidOperationException(
+                        "สร้างตาราง Visits บน Cloud ไม่สำเร็จ — ให้ login มีสิทธิ์ db_owner หรือสร้าง schema บนฐานข้อมูล Cloud");
+                }
+            }
+
+            lock (ReadySchemas)
+            {
+                ReadySchemas.Add(key);
+            }
         }
         finally
         {
-            _schemaLock.Release();
+            SchemaLock.Release();
         }
+    }
+
+    private static async Task<bool> CloudHasVisitsTableAsync(AppDbContext cloud, CancellationToken cancellationToken)
+    {
+        var connection = cloud.Database.GetDbConnection();
+        if (connection.State != ConnectionState.Open)
+        {
+            await cloud.Database.OpenConnectionAsync(cancellationToken);
+        }
+
+        await using var command = connection.CreateCommand();
+        command.CommandText = "SELECT CASE WHEN OBJECT_ID(N'[dbo].[Visits]', 'U') IS NULL THEN 0 ELSE 1 END";
+        var result = await command.ExecuteScalarAsync(cancellationToken);
+        return result is not null && Convert.ToInt32(result) == 1;
     }
 
     private AppDbContext CreateCloudContext(CloudOptions options)

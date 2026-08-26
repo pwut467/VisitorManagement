@@ -24,6 +24,23 @@ public class CloudOptionsTests
     }
 
     [Fact]
+    public void BuildConnectionString_RequiresPassword_ForSqlAuth()
+    {
+        var opts = new CloudOptions
+        {
+            Enabled = true,
+            Server = "192.168.11.204",
+            Database = "VisitorManagment",
+            UseWindowsAuth = false,
+            UserId = "skhemrat",
+            Password = ""
+        };
+
+        Assert.Equal("", CloudOptions.BuildConnectionString(opts));
+        Assert.False(opts.IsConfigured);
+    }
+
+    [Fact]
     public void BuildConnectionString_BuildsSqlAuth()
     {
         var opts = new CloudOptions
@@ -69,7 +86,7 @@ public class CloudOptionsTests
     }
 
     [Fact]
-    public void ApplyConnectionString_AcceptsExplicitSqlAuthConnectionString()
+    public void ApplyConnectionString_SanitizesMixedTrustedAndSqlAuth()
     {
         var opts = new CloudOptions
         {
@@ -81,10 +98,13 @@ public class CloudOptionsTests
 
         CloudOptions.ApplyConnectionString(
             opts,
-            "Server=192.168.11.204;Database=VisitorManagment;User Id=sa;Password=x;TrustServerCertificate=True");
+            "server=192.168.11.204;Initial Catalog=VisitorManagment;Trusted_Connection=True;TrustServerCertificate=true;Integrated Security=false; User ID=skhemrat; PASSWORD=P@ssw0rd;");
 
         Assert.True(opts.IsConfigured);
-        Assert.Contains("User Id=sa", opts.ConnectionString);
+        Assert.NotNull(opts.ConnectionString);
+        Assert.DoesNotContain("Trusted_Connection=True", opts.ConnectionString, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("skhemrat", opts.ConnectionString, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("P@ssw0rd", opts.ConnectionString);
     }
 
     [Fact]

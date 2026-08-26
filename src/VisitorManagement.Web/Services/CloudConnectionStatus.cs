@@ -114,7 +114,7 @@ public sealed class CloudOptions
         && !string.IsNullOrWhiteSpace(Server)
         && !string.IsNullOrWhiteSpace(Database)
         && (UseWindowsAuth
-            || !string.IsNullOrWhiteSpace(UserId)
+            || (!string.IsNullOrWhiteSpace(UserId) && !string.IsNullOrEmpty(Password))
             || LooksLikeSqlAuthConnectionString(ConnectionString));
 
     public static CloudOptions FromConfiguration(IConfiguration config)
@@ -134,12 +134,21 @@ public sealed class CloudOptions
             return;
         }
 
-        // Do not silently reuse Trusted_Connection for a remote Cloud IP —
-        // that is the usual reason "เชื่อมต่อ cloud server ไม่ได้" from a non-domain PC.
-        if (!string.IsNullOrWhiteSpace(configured)
-            && (LooksLikeSqlAuthConnectionString(configured)
-                || (opts.UseWindowsAuth
-                    && configured.Contains("Trusted_Connection", StringComparison.OrdinalIgnoreCase))))
+        if (string.IsNullOrWhiteSpace(configured))
+        {
+            opts.ConnectionString = null;
+            return;
+        }
+
+        if (LooksLikeSqlAuthConnectionString(configured))
+        {
+            // Mixed Trusted_Connection + User ID often makes SqlClient ignore SQL Auth.
+            opts.ConnectionString = SanitizeSqlAuthConnectionString(configured);
+            return;
+        }
+
+        if (opts.UseWindowsAuth
+            && configured.Contains("Trusted_Connection", StringComparison.OrdinalIgnoreCase))
         {
             opts.ConnectionString = configured;
             return;
@@ -156,6 +165,12 @@ public sealed class CloudOptions
         }
 
         if (!opts.UseWindowsAuth && string.IsNullOrWhiteSpace(opts.UserId))
+        {
+            return "";
+        }
+
+        // Empty password with SQL Auth is almost always a misconfiguration (wiped by blank DB field).
+        if (!opts.UseWindowsAuth && string.IsNullOrEmpty(opts.Password))
         {
             return "";
         }
@@ -181,6 +196,25 @@ public sealed class CloudOptions
         }
 
         return string.Join(';', parts);
+    }
+
+    public static string SanitizeSqlAuthConnectionString(string configured)
+    {
+        var builder = new SqlConnectionStringBuilder(configured)
+        {
+            IntegratedSecurity = false,
+            TrustServerCertificate = true
+        };
+        // Remove ambiguous Windows-auth flags when SQL Auth is intended.
+        builder.Remove("Trusted_Connection");
+        builder.Remove("Integrated Security");
+        builder.IntegratedSecurity = false;
+        if (!builder.ContainsKey("Encrypt"))
+        {
+            builder.Encrypt = false;
+        }
+
+        return builder.ConnectionString;
     }
 
     private static bool LooksLikeSqlAuthConnectionString(string? cs) =>
@@ -267,9 +301,11 @@ public sealed class CloudOptionsProvider : ICloudOptionsProvider
                     opts.UserId = profile.CloudUserId.Trim();
                 }
 
-                // Keep existing password from config if UI left password blank intentionally?
-                // Settings save always writes password field; empty means clear unless we use placeholder.
-                opts.Password = profile.CloudPassword;
+                // Never wipe appsettings password with a blank DB value.
+                if (!string.IsNullOrEmpty(profile.CloudPassword))
+                {
+                    opts.Password = profile.CloudPassword;
+                }
             }
         }
         catch
