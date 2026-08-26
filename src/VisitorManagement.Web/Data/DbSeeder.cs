@@ -46,7 +46,7 @@ public static class DbSeeder
                 DefaultVisitHours = 2,
                 OverstayGraceMinutes = 15,
                 AutoPrintBadge = true,
-                SeedRevision = 1,
+                SeedRevision = 2,
                 CloudEnabled = true,
                 CloudServer = string.IsNullOrWhiteSpace(cloudOpts.Server) ? "192.168.11.204" : cloudOpts.Server,
                 CloudDatabase = string.IsNullOrWhiteSpace(cloudOpts.Database) ? "VisitorManagment" : cloudOpts.Database,
@@ -216,16 +216,23 @@ public static class DbSeeder
 
     private static async Task ClearVisitorRecordsOnceAsync(AppDbContext db)
     {
+        const int targetRevision = 2;
         var company = await db.CompanyProfiles.FirstOrDefaultAsync();
-        if (company is null || company.SeedRevision >= 1)
+        if (company is null || company.SeedRevision >= targetRevision)
         {
             return;
         }
 
+        await ClearAllVisitorDataAsync(db);
+        company.SeedRevision = targetRevision;
+        await db.SaveChangesAsync();
+    }
+
+    public static async Task ClearAllVisitorDataAsync(AppDbContext db)
+    {
         db.VisitItems.RemoveRange(await db.VisitItems.ToListAsync());
         db.Visits.RemoveRange(await db.Visits.ToListAsync());
         db.Visitors.RemoveRange(await db.Visitors.ToListAsync());
-        company.SeedRevision = 1;
         await db.SaveChangesAsync();
     }
 

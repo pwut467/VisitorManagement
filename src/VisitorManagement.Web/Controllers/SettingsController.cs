@@ -140,6 +140,18 @@ public class SettingsController : Controller
         return RedirectToAction(nameof(Index));
     }
 
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> ClearVisitors()
+    {
+        var visitCount = await _db.Visits.CountAsync();
+        var visitorCount = await _db.Visitors.CountAsync();
+        await DbSeeder.ClearAllVisitorDataAsync(_db);
+        _cloudStatus.SetPendingCount(0);
+        TempData["Success"] = $"ล้างข้อมูลผู้มาติดต่อแล้ว (บัตร {visitCount} / บุคคล {visitorCount})";
+        return RedirectToAction(nameof(Index));
+    }
+
     private async Task<SettingsViewModel> ToModelAsync(CompanyProfile c)
     {
         var opts = await _cloudOptions.GetAsync();

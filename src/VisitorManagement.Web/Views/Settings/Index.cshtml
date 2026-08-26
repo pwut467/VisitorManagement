@@ -42,6 +42,14 @@
                     </div>
                 </fieldset>
                 <button class="btn btn-teal" type="submit">บันทึก</button>
+                <hr class="my-4" />
+                <h3 class="h6 text-danger">ล้างข้อมูลผู้มาติดต่อ</h3>
+                <p class="text-muted small mb-2">ลบประวัติ Visit / Visitor ทั้งหมดในเครื่อง Local (ไม่ลบพนักงาน บัญชีผู้ใช้ หรือบัญชีดำ)</p>
+                <button class="btn btn-outline-danger" type="submit"
+                        formaction="@Url.Action("ClearVisitors")" formmethod="post"
+                        onclick="return confirm('ยืนยันล้างข้อมูลผู้มาติดต่อทั้งหมด? การกระทำนี้ย้อนกลับไม่ได้');">
+                    ล้างข้อมูลผู้มาติดต่อทั้งหมด
+                </button>
             </div>
         </div>
 
