@@ -1,4 +1,6 @@
-﻿<!DOCTYPE html>
+﻿@using Microsoft.AspNetCore.Identity
+@inject UserManager<ApplicationUser> UserManager
+<!DOCTYPE html>
 <html lang="th">
 <head>
     <meta charset="utf-8" />
@@ -11,6 +13,15 @@
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
     @await RenderSectionAsync("Styles", required: false)
 </head>
+@{
+    string? displayName = User.FindFirst("FullName")?.Value;
+    if (string.IsNullOrWhiteSpace(displayName) && User.Identity?.IsAuthenticated == true)
+    {
+        var currentUser = await UserManager.GetUserAsync(User);
+        displayName = string.IsNullOrWhiteSpace(currentUser?.FullName) ? User.Identity?.Name : currentUser.FullName;
+    }
+    displayName ??= User.Identity?.Name;
+}
 <body>
     <div class="app-shell d-lg-flex">
         <aside class="sidebar">
@@ -73,7 +84,7 @@
                             <span id="cloud-status-detail" class="cloud-status-detail"></span>
                         </span>
                     </div>
-                    <span class="small text-muted">@User.Identity?.Name</span>
+                    <span class="small text-muted">@displayName</span>
                     <form asp-controller="Account" asp-action="Logout" method="post" class="m-0">
                         <button class="btn btn-sm btn-outline-secondary">ออกจากระบบ</button>
                     </form>
