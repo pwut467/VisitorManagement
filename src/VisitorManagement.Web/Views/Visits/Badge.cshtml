@@ -56,7 +56,7 @@
         .head .company { font-size: 11px; font-weight: 600; line-height: 1.3; }
         .head .title { font-size: 16px; font-weight: 700; }
         .barcode { text-align: center; margin: 4px 0 8px; }
-        .barcode svg { width: 100%; height: 46px; }
+        .barcode svg { width: 100%; height: 72px; }
         .row {
             display: flex;
             gap: 6px;
@@ -111,7 +111,7 @@
         <div class="row"><span class="lbl">เลขที่</span><span class="val">@Model.VisitNumber</span></div>
         <div class="row"><span class="lbl">วันที่เวลาเข้า</span><span class="val">@checkInAt.ToString("dd/MM/yyyy HH:mm")</span></div>
         <div class="row"><span class="lbl">ชื่อผู้มาติดต่อ</span><span class="val">@Model.GuestFullName</span></div>
-        <div class="row"><span class="lbl">ทะเบียนรถ</span><span class="val">@(string.IsNullOrWhiteSpace(Model.VehiclePlate) ? " " : $"{(string.IsNullOrWhiteSpace(Model.VehicleType) ? "" : Model.VehicleType + " ")}{Model.VehiclePlate}".Trim())</span></div>
+        <div class="row"><span class="lbl">ทะเบียนรถ</span><span class="val">@(string.IsNullOrWhiteSpace(Model.VehiclePlate) ? " " : Model.VehiclePlate)</span></div>
         <div class="row"><span class="lbl">หน่วยงาน</span><span class="val">@(string.IsNullOrWhiteSpace(companyName) ? " " : companyName)</span></div>
         <div class="row"><span class="lbl">วัตถุประสงค์</span><span class="val">@purpose</span></div>
         <div class="row"><span class="lbl">ผู้ต้องการพบ</span><span class="val">@Model.HostEmployee.FullName</span></div>
