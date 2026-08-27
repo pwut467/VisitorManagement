@@ -114,7 +114,15 @@ internal sealed class PcscCardTransport : ICardTransport
     {
         _context = context;
         _reader = reader;
-        Atr = reader.GetAttrib(SCardAttribute.AtrString) ?? [];
+        try
+        {
+            Atr = reader.GetAttrib(SCardAttribute.AtrString) ?? [];
+        }
+        catch (PCSCException ex)
+        {
+            throw new ThaiIdCardException("reader_error", "อ่าน ATR จากบัตรไม่สำเร็จ: " + ex.Message);
+        }
+
         ReaderName = reader.Name;
     }
 
@@ -123,18 +131,33 @@ internal sealed class PcscCardTransport : ICardTransport
 
     public (byte[] Data, byte Sw1, byte Sw2) Transmit(byte[] command)
     {
-        var recv = new byte[512];
-        var pci = SCardPCI.GetPci(_reader.Protocol);
-        var received = _reader.Transmit(pci, command, recv);
-        if (received < 2)
+        try
         {
-            throw new ThaiIdCardException("read_failed", "เครื่องอ่านไม่ได้ตอบกลับจากบัตร");
-        }
+            var recv = new byte[512];
+            var pci = SCardPCI.GetPci(_reader.Protocol);
+            var received = _reader.Transmit(pci, command, recv);
+            if (received < 2)
+            {
+                throw new ThaiIdCardException("read_failed", "เครื่องอ่านไม่ได้ตอบกลับจากบัตร");
+            }
 
-        var sw1 = recv[received - 2];
-        var sw2 = recv[received - 1];
-        var data = received > 2 ? recv[..(received - 2)] : [];
-        return (data, sw1, sw2);
+            var sw1 = recv[received - 2];
+            var sw2 = recv[received - 1];
+            var data = received > 2 ? recv[..(received - 2)] : [];
+            return (data, sw1, sw2);
+        }
+        catch (ThaiIdCardException)
+        {
+            throw;
+        }
+        catch (PCSCException ex)
+        {
+            throw new ThaiIdCardException("read_failed", "สื่อสารกับบัตรไม่สำเร็จ: " + ex.Message);
+        }
+        catch (Exception ex)
+        {
+            throw new ThaiIdCardException("read_failed", "สื่อสารกับบัตรไม่สำเร็จ: " + ex.Message);
+        }
     }
 
     public void Dispose()

@@ -8,12 +8,18 @@ if command -v pcscd >/dev/null 2>&1 && ! pgrep -x pcscd >/dev/null 2>&1; then
 fi
 
 if ! curl -sf --max-time 1 http://127.0.0.1:5001/health >/dev/null 2>&1; then
-  nohup dotnet run --project src/VisitorManagement.CardReader --urls http://127.0.0.1:5001 \
-    >/tmp/visitor-card-reader.log 2>&1 &
-  for _ in $(seq 1 30); do
+  echo "Starting VisitorManagement.CardReader on http://127.0.0.1:5001"
+  nohup dotnet run --project src/VisitorManagement.CardReader --no-launch-profile --urls http://127.0.0.1:5001 \
+    >/tmp/visitor-card-reader.log 2>&1 </dev/null &
+  disown || true
+  for _ in $(seq 1 45); do
     curl -sf --max-time 1 http://127.0.0.1:5001/health >/dev/null 2>&1 && break
     sleep 1
   done
+fi
+
+if ! curl -sf --max-time 1 http://127.0.0.1:5001/health >/dev/null 2>&1; then
+  echo "WARNING: CardReader failed to start. See /tmp/visitor-card-reader.log" >&2
 fi
 
 if curl -sf --max-time 1 http://127.0.0.1:5088/ >/dev/null 2>&1; then

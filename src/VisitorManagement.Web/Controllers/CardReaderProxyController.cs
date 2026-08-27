@@ -51,24 +51,29 @@ public class CardReaderProxyController : Controller
 
         try
         {
-            using var response = await client.GetAsync(AgentBase + pathAndQuery, timeoutCts.Token);
+            using var response = await client.GetAsync(AgentBase + pathAndQuery, HttpCompletionOption.ResponseContentRead, timeoutCts.Token);
             var body = await response.Content.ReadAsStringAsync(timeoutCts.Token);
             if (string.IsNullOrWhiteSpace(body))
             {
-                return StatusCode((int)response.StatusCode, new
+                var code = (int)response.StatusCode;
+                return StatusCode(code >= 400 ? code : StatusCodes.Status502BadGateway, new
                 {
                     ok = false,
                     error = "empty_response",
-                    message = "โปรแกรมอ่านบัตรตอบกลับว่าง (HTTP " + (int)response.StatusCode + ")"
+                    message = code switch
+                    {
+                        500 => "โปรแกรมอ่านบัตรขัดข้อง (HTTP 500) — รีสตาร์ท VisitorManagement.CardReader แล้วลองใหม่",
+                        404 => "ไม่พบ API ของโปรแกรมอ่านบัตร — อัปเดต/รีสตาร์ท CardReader",
+                        _ => "โปรแกรมอ่านบัตรตอบกลับว่าง (HTTP " + code + ")"
+                    }
                 });
             }
 
-            var contentType = response.Content.Headers.ContentType?.ToString() ?? "application/json";
             return new ContentResult
             {
                 StatusCode = (int)response.StatusCode,
                 Content = body,
-                ContentType = contentType
+                ContentType = "application/json; charset=utf-8"
             };
         }
         catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or OperationCanceledException)
