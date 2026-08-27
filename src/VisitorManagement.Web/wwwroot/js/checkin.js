@@ -152,10 +152,16 @@
 
   async function refreshReaderStatus() {
     try {
-      const res = await fetch(agentUrl + '/api/status', { signal: AbortSignal.timeout(1500) });
+      const res = await fetch(agentUrl + '/api/status', {
+        signal: AbortSignal.timeout(1500),
+        mode: 'cors',
+        cache: 'no-store'
+      });
       const data = await res.json();
-      if (!data.hasReader) {
-        setBadge('bg-warning text-dark', 'ไม่พบเครื่องอ่าน', 'เสียบเครื่องอ่าน USB ที่เครื่องนี้');
+      if (data.pcscAvailable === false) {
+        setBadge('bg-warning text-dark', 'PC/SC ยังไม่พร้อม', data.message || 'เปิดบริการ Smart Card / pcscd');
+      } else if (!data.hasReader) {
+        setBadge('bg-warning text-dark', 'ไม่พบเครื่องอ่าน', data.message || 'เสียบเครื่องอ่าน USB ที่เครื่องนี้');
       } else if (!data.hasCard) {
         setBadge('bg-info text-dark', 'พร้อมอ่าน — ยังไม่มีบัตร', (data.readers || []).join(', '));
       } else {
@@ -169,7 +175,11 @@
   }
 
   async function readCardOnce() {
-    const res = await fetch(agentUrl + '/api/thcard?photo=true', { signal: AbortSignal.timeout(20000) });
+    const res = await fetch(agentUrl + '/api/thcard?photo=true', {
+      signal: AbortSignal.timeout(20000),
+      mode: 'cors',
+      cache: 'no-store'
+    });
     const card = await res.json();
     if (!res.ok || card.ok === false) {
       const err = new Error(card.message || 'อ่านบัตรไม่สำเร็จ');
@@ -186,6 +196,23 @@
     showAlert('info', 'กำลังอ่านบัตรจากเครื่องอ่านจริง...');
     const started = Date.now();
     try {
+      const status = await refreshReaderStatus();
+      if (!status) {
+        showAlert(
+          'danger',
+          'เปิดโปรแกรมอ่านบัตรบนเครื่องนี้ไม่สำเร็จ — รัน src/VisitorManagement.CardReader (พอร์ต 5001) บนเครื่องที่เสียบ USB เครื่องอ่าน'
+        );
+        return;
+      }
+      if (status.pcscAvailable === false) {
+        showAlert('danger', status.message || 'บริการ PC/SC ยังไม่พร้อม');
+        return;
+      }
+      if (!status.hasReader) {
+        showAlert('danger', status.message || 'ไม่พบเครื่องอ่านบัตร USB ที่เครื่องนี้');
+        return;
+      }
+
       while (waitingForCard && Date.now() - started < 30000) {
         try {
           const card = await readCardOnce();
@@ -206,7 +233,10 @@
       showAlert('warning', 'ยังไม่พบบัตรในเครื่องอ่าน — เสียบบัตรแล้วกดอ่านอีกครั้ง');
     } catch (err) {
       if (err.name === 'TimeoutError' || err.name === 'AbortError' || err.message === 'Failed to fetch') {
-        showAlert('danger', 'เปิดโปรแกรมอ่านบัตรบนเครื่องนี้ไม่สำเร็จ รัน src/VisitorManagement.CardReader แล้วเสียบเครื่องอ่าน USB');
+        showAlert(
+          'danger',
+          'ติดต่อโปรแกรมอ่านบัตรที่ ' + agentUrl + ' ไม่ได้ — รัน CardReader บนเครื่องนี้แล้วรีเฟรชหน้า'
+        );
       } else {
         showAlert('danger', err.message || 'อ่านบัตรไม่สำเร็จ');
       }

@@ -7,8 +7,14 @@ public interface ICardTransport : IDisposable
     (byte[] Data, byte Sw1, byte Sw2) Transmit(byte[] command);
 }
 
+public sealed record PcscProbeResult(
+    bool PcscAvailable,
+    IReadOnlyList<string> Readers,
+    string Message);
+
 public interface IPcscReaderHub
 {
+    PcscProbeResult Probe();
     IReadOnlyList<string> ListReaders();
     bool HasCard(string readerName);
     ICardTransport Connect(string? readerName = null);

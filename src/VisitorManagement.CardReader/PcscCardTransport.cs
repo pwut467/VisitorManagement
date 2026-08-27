@@ -6,18 +6,27 @@ namespace VisitorManagement.CardReader;
 
 public sealed class PcscReaderHub : IPcscReaderHub
 {
-    public IReadOnlyList<string> ListReaders()
+    public PcscProbeResult Probe()
     {
         try
         {
             using var context = ContextFactory.Instance.Establish(SCardScope.System);
-            return context.GetReaders() ?? [];
+            IReadOnlyList<string> readers = context.GetReaders() ?? Array.Empty<string>();
+            return new PcscProbeResult(
+                true,
+                readers,
+                readers.Count == 0
+                    ? "ไม่พบเครื่องอ่านบัตร USB"
+                    : $"พบเครื่องอ่าน {readers.Count} เครื่อง");
         }
         catch (Exception ex) when (ex is PCSCException or DllNotFoundException or TypeInitializationException)
         {
-            return [];
+            var message = DescribePcscFailure(ex);
+            return new PcscProbeResult(false, [], message);
         }
     }
+
+    public IReadOnlyList<string> ListReaders() => Probe().Readers;
 
     public bool HasCard(string readerName)
     {
@@ -35,7 +44,13 @@ public sealed class PcscReaderHub : IPcscReaderHub
 
     public ICardTransport Connect(string? readerName = null)
     {
-        var readers = ListReaders();
+        var probe = Probe();
+        if (!probe.PcscAvailable)
+        {
+            throw new ThaiIdCardException("pcsc_unavailable", probe.Message);
+        }
+
+        var readers = probe.Readers;
         if (readers.Count == 0)
         {
             throw new ThaiIdCardException("no_reader", "ไม่พบเครื่องอ่านบัตร USB กรุณาเสียบเครื่องอ่านและติดตั้งไดรเวอร์ PC/SC");
@@ -66,6 +81,27 @@ public sealed class PcscReaderHub : IPcscReaderHub
         {
             throw new ThaiIdCardException("reader_error", "เชื่อมต่อเครื่องอ่านบัตรไม่สำเร็จ: " + ex.Message);
         }
+    }
+
+    private static string DescribePcscFailure(Exception ex)
+    {
+        if (ex is DllNotFoundException)
+        {
+            return "ไม่พบไลบรารี PC/SC (libpcsclite) — ติดตั้ง pcscd และ libpcsclite1";
+        }
+
+        if (ex is PCSCException pcsc)
+        {
+            return pcsc.SCardError switch
+            {
+                SCardError.NoService => "บริการ PC/SC (pcscd / Smart Card) ยังไม่ทำงาน — เปิดบริการแล้วรันโปรแกรมนี้อีกครั้ง",
+                SCardError.ServiceStopped => "บริการ PC/SC หยุดทำงาน — เปิด pcscd หรือ Smart Card Service",
+                SCardError.NoReadersAvailable => "ไม่พบเครื่องอ่านบัตร USB",
+                _ => "เชื่อมต่อ PC/SC ไม่สำเร็จ: " + pcsc.Message
+            };
+        }
+
+        return "เชื่อมต่อ PC/SC ไม่สำเร็จ: " + ex.Message;
     }
 }
 
