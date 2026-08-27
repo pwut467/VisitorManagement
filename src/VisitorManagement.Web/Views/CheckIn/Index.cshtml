@@ -1,0 +1,163 @@
+@model CheckInViewModel
+@{
+    ViewData["Title"] = "ลงทะเบียนผู้มาติดต่อ";
+    var printBadgeUrl = TempData["PrintBadgeUrl"] as string;
+}
+
+<form asp-action="Index" method="post" id="checkin-form">
+    <input type="hidden" asp-for="VisitId" />
+    <input type="hidden" asp-for="PhotoDataUrl" />
+    <input type="hidden" asp-for="SubmitAction" />
+
+    <div class="row g-3">
+        <div class="col-lg-8">
+            <div class="card vm-card p-3 mb-3">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h2 class="h5 mb-0">ข้อมูลผู้มาติดต่อ</h2>
+                    <div class="d-flex gap-2">
+                        <button type="button" class="btn btn-outline-primary btn-sm" id="btn-read-card"><i class="bi bi-credit-card-2-front"></i> อ่านบัตรประชาชน</button>
+                        <button type="button" class="btn btn-outline-secondary btn-sm" id="btn-lookup">ค้นหาผู้เคยมา</button>
+                    </div>
+                </div>
+                <div class="d-flex align-items-center gap-2 mb-2">
+                    <span id="reader-badge" class="badge bg-secondary">กำลังตรวจเครื่องอ่าน...</span>
+                    <span id="reader-detail" class="small text-muted"></span>
+                </div>
+                <div id="id-alert" class="alert d-none"></div>
+                <div asp-validation-summary="ModelOnly" class="text-danger mb-2"></div>
+                <div id="card-reader-config" class="d-none" data-url="@ViewBag.CardReaderUrl"></div>
+                <div class="row g-2">
+                    <div class="col-md-4">
+                        <label asp-for="NationalId" class="form-label"></label> <span class="text-danger">*</span>
+                        <input type="hidden" asp-for="NationalId" />
+                        <input id="NationalIdDisplay" class="form-control font-monospace" maxlength="17" inputmode="numeric" autocomplete="off" spellcheck="false" required value="@ThaiNationalId.Mask(Model.NationalId)" />
+                        <span asp-validation-for="NationalId" class="text-danger"></span>
+                    </div>
+                    <div class="col-md-2">
+                        <label asp-for="Title" class="form-label"></label>
+                        <select asp-for="Title" asp-items="Model.Titles" class="form-select"></select>
+                    </div>
+                    <div class="col-md-3">
+                        <label asp-for="FirstName" class="form-label"></label> <span class="text-danger">*</span>
+                        <input asp-for="FirstName" class="form-control" />
+                        <span asp-validation-for="FirstName" class="text-danger"></span>
+                    </div>
+                    <div class="col-md-3">
+                        <label asp-for="LastName" class="form-label"></label> <span class="text-danger">*</span>
+                        <input asp-for="LastName" class="form-control" />
+                        <span asp-validation-for="LastName" class="text-danger"></span>
+                    </div>
+                    <div class="col-md-6">
+                        <label asp-for="Phone" class="form-label"></label>
+                        <input asp-for="Phone" class="form-control" />
+                    </div>
+                    <div class="col-md-6">
+                        <label asp-for="CompanyName" class="form-label"></label>
+                        <input asp-for="CompanyName" class="form-control" />
+                    </div>
+                    <input type="hidden" asp-for="Address" />
+                </div>
+            </div>
+
+            <div class="card vm-card p-3 mb-3">
+                <h2 class="h5">รายละเอียดการเข้าพบ</h2>
+                <div class="row g-2">
+                    <div class="col-md-4">
+                        <label asp-for="VisitorTypeId" class="form-label"></label> <span class="text-danger">*</span>
+                        <select asp-for="VisitorTypeId" asp-items="Model.VisitorTypes" class="form-select"></select>
+                        <span asp-validation-for="VisitorTypeId" class="text-danger"></span>
+                    </div>
+                    <div class="col-md-4">
+                        <label asp-for="VisitPurposeId" class="form-label"></label> <span class="text-danger">*</span>
+                        <select asp-for="VisitPurposeId" asp-items="Model.VisitPurposes" class="form-select"></select>
+                        <span asp-validation-for="VisitPurposeId" class="text-danger"></span>
+                    </div>
+                    <div class="col-md-4">
+                        <label asp-for="HostName" class="form-label"></label> <span class="text-danger">*</span>
+                        <input asp-for="HostName" class="form-control" autocomplete="off" placeholder="พิมพ์ชื่อ-นามสกุล" />
+                        <span asp-validation-for="HostName" class="text-danger"></span>
+                    </div>
+                    <div class="col-12">
+                        <label asp-for="PurposeDetail" class="form-label"></label>
+                        <input asp-for="PurposeDetail" class="form-control" />
+                    </div>
+                    <div class="col-md-4">
+                        <label asp-for="VehicleType" class="form-label"></label> <span class="text-danger">*</span>
+                        <select asp-for="VehicleType" asp-items="Model.VehicleTypes" class="form-select"></select>
+                        <span asp-validation-for="VehicleType" class="text-danger"></span>
+                    </div>
+                    <div class="col-md-4">
+                        <label asp-for="VehiclePlate" class="form-label"></label> <span class="text-danger">*</span>
+                        <input asp-for="VehiclePlate" class="form-control" />
+                        <span asp-validation-for="VehiclePlate" class="text-danger"></span>
+                    </div>
+                    <div class="col-md-4">
+                        <label asp-for="AccompanyingCount" class="form-label"></label>
+                        <input asp-for="AccompanyingCount" class="form-control" type="number" min="0" />
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-4">
+            <div class="card vm-card p-3 mb-3">
+                <h2 class="h5">ถ่ายรูป</h2>
+                <div class="photo-frame mb-2" id="photo-frame">
+                    <video id="cam" autoplay playsinline muted></video>
+                    <img id="preview" class="d-none" alt="visitor photo" />
+                </div>
+                <div class="d-flex gap-2 flex-wrap">
+                    <button type="button" class="btn btn-outline-primary btn-sm" id="btn-start-cam">เปิดกล้อง</button>
+                    <button type="button" class="btn btn-teal btn-sm" id="btn-snap">ถ่ายรูป</button>
+                    <button type="button" class="btn btn-outline-secondary btn-sm" id="btn-retake">ถ่ายใหม่</button>
+                </div>
+            </div>
+            <div class="card vm-card p-3">
+                <div class="form-check mb-3">
+                    <input asp-for="PdpaConsent" class="form-check-input" />
+                    <label asp-for="PdpaConsent" class="form-check-label">
+                        ผู้มาติดต่อยินยอมให้เก็บข้อมูลส่วนบุคคลตาม
+                        <a href="#pdpaModal" id="pdpa-policy-link">PDPA</a>
+                        เพื่อความปลอดภัยของสถานประกอบการ
+                    </label>
+                </div>
+                @{
+                    var printDirect = ViewFlag.IsOn(ViewBag.AutoPrintBadge, whenMissing: true);
+                }
+                <button class="btn btn-teal w-100" type="submit" id="btn-checkin">@(printDirect ? "บันทึกเข้า + พิมพ์บัตร" : "บันทึกเข้า + ดูตัวอย่างบัตร")</button>
+            </div>
+        </div>
+    </div>
+</form>
+<div class="modal fade" id="pdpaModal" tabindex="-1" aria-labelledby="pdpaModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title h5" id="pdpaModalLabel">นโยบายการเก็บข้อมูลผู้มาติดต่อ (PDPA)</h2>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="ปิด"></button>
+            </div>
+            <div class="modal-body">
+                <partial name="_PdpaPolicy" />
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-teal" data-bs-dismiss="modal">ปิด</button>
+            </div>
+        </div>
+    </div>
+</div>
+@if (!string.IsNullOrEmpty(printBadgeUrl))
+{
+    <iframe id="badge-print-frame" title="พิมพ์บัตรผู้มาติดต่อ" src="@printBadgeUrl"
+            style="position:absolute;left:-10000px;top:0;width:80mm;height:200mm;border:0"></iframe>
+}
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script src="~/js/checkin.js" asp-append-version="true"></script>
+    <script>
+        document.getElementById('pdpa-policy-link')?.addEventListener('click', function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+            bootstrap.Modal.getOrCreateInstance(document.getElementById('pdpaModal')).show();
+        });
+    </script>
+}

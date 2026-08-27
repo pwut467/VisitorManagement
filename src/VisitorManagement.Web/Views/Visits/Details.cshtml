@@ -1,0 +1,98 @@
+@model Visit
+@{
+    ViewData["Title"] = "รายละเอียด " + Model.VisitNumber;
+    var returnUrl = ViewBag.ReturnUrl as string ?? Url.Action("Index") ?? "/Visits";
+}
+
+<div class="mb-3 no-print">
+    <a class="btn btn-outline-secondary" href="@returnUrl"><i class="bi bi-arrow-left"></i> ย้อนกลับ</a>
+</div>
+
+<div class="row g-3">
+    <div class="col-lg-8">
+        <div class="card vm-card p-3">
+            <div class="d-flex justify-content-between">
+                <div>
+                    <h1 class="h4 mb-1">@Model.GuestFullName</h1>
+                    <div class="text-muted">@Model.VisitNumber · @Model.VisitorType.Name</div>
+                    @if (Model.HasNameMismatchWithMaster)
+                    {
+                        <div class="alert alert-warning py-2 px-3 mt-2 mb-0 small">
+                            ชื่อที่คีย์ในครั้งนี้ไม่ตรงกับข้อมูลเดิมตามเลขบัตร:
+                            <strong>@Model.Visitor.FullName</strong>
+                        </div>
+                    }
+                </div>
+                <span class="badge bg-primary align-self-start">@Model.Status</span>
+            </div>
+            <hr />
+            <div class="row">
+                <div class="col-md-6">
+                    <dl>
+                        <dt>เลขบัตรประชาชน</dt><dd>@ThaiNationalId.Mask(Model.Visitor.NationalId)</dd>
+                        <dt>บริษัท</dt><dd>@(Model.CompanyName ?? "-")</dd>
+                        <dt>โทร</dt><dd>@(Model.GuestPhone ?? Model.Visitor.Phone ?? "-")</dd>
+                        <dt>มาติดต่อ</dt><dd>@Model.HostEmployee.FullName (@Model.HostEmployee.Department.Name)</dd>
+                        <dt>วัตถุประสงค์</dt><dd>@Model.VisitPurpose.Name — @(Model.PurposeDetail ?? "-")</dd>
+                    </dl>
+                </div>
+                <div class="col-md-6">
+                    <dl>
+                        <dt>เวลาเข้า</dt><dd>@(Model.CheckInAt?.ToString("dd/MM/yyyy HH:mm") ?? "-")</dd>
+                        <dt>เวลาออก</dt><dd>@(Model.CheckOutAt?.ToString("dd/MM/yyyy HH:mm") ?? "-")</dd>
+                        <dt>รถ</dt><dd>@(string.IsNullOrWhiteSpace(Model.VehiclePlate) ? "-" : $"{Model.VehicleType} {Model.VehiclePlate}".Trim())</dd>
+                        <dt>ผู้ติดตาม</dt><dd>@Model.AccompanyingCount คน</dd>
+                        <dt>Cloud</dt>
+                        <dd>
+                            @if (Model.CloudSynced)
+                            {
+                                <span class="text-success">ซิงก์แล้ว</span>
+                                @if (Model.CloudSyncedAt is not null)
+                                {
+                                    <span class="text-muted small">(@Model.CloudSyncedAt.Value.ToString("dd/MM/yyyy HH:mm"))</span>
+                                }
+                            }
+                            else
+                            {
+                                <span class="text-warning">ยังไม่ซิงก์</span>
+                                @if (!string.IsNullOrWhiteSpace(Model.CloudSyncError))
+                                {
+                                    <div class="small text-danger mt-1">@Model.CloudSyncError</div>
+                                }
+                            }
+                        </dd>
+                    </dl>
+                </div>
+            </div>
+            <div class="d-flex gap-2 flex-wrap no-print">
+                @if (Model.Status == VisitStatus.CheckedIn)
+                {
+                    <a class="btn btn-teal" asp-controller="CheckOut" asp-action="Index" asp-route-code="@Model.VisitNumber" asp-route-returnUrl="@returnUrl">Check-out</a>
+                }
+                @if (Model.Status == VisitStatus.PreRegistered)
+                {
+                    <a class="btn btn-teal" asp-controller="CheckIn" asp-action="Index" asp-route-visitId="@Model.Id">ทำ Check-in</a>
+                }
+                <a class="btn btn-outline-primary" asp-action="Badge" asp-route-id="@Model.Id" asp-route-returnUrl="@returnUrl">@(Model.BadgePrintedAt is null ? "พิมพ์บัตร Visitor" : "พิมพ์บัตรซ้ำ")</a>
+            </div>
+            @if (Model.Status is VisitStatus.CheckedIn or VisitStatus.PreRegistered)
+            {
+                <form asp-action="Cancel" asp-route-id="@Model.Id" method="post" class="mt-3 no-print">
+                    <input type="hidden" name="returnUrl" value="@returnUrl" />
+                    <div class="input-group">
+                        <input name="reason" class="form-control" placeholder="เหตุผลยกเลิก" />
+                        <button class="btn btn-outline-danger">ยกเลิก</button>
+                    </div>
+                </form>
+            }
+        </div>
+    </div>
+    @if (!string.IsNullOrEmpty(Model.PhotoPath))
+    {
+        <div class="col-lg-4">
+            <div class="card vm-card p-3 text-center">
+                <img src="@Model.PhotoPath" class="rounded" style="max-width:100%" alt="photo" />
+            </div>
+        </div>
+    }
+</div>

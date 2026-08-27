@@ -1,0 +1,26 @@
+@model IEnumerable<Employee>
+@{
+    ViewData["Title"] = "พนักงาน (Host)";
+}
+<div class="d-flex justify-content-between mb-3">
+    <p class="text-muted mb-0">พนักงานที่ผู้มาติดต่อสามารถระบุว่ามาหา</p>
+    <a class="btn btn-teal" asp-action="Create">เพิ่มพนักงาน</a>
+</div>
+<div class="card vm-card p-3">
+    <table class="table">
+        <thead><tr><th>รหัส</th><th>ชื่อ</th><th>แผนก</th><th>โทร</th><th>สถานะ</th><th></th></tr></thead>
+        <tbody>
+        @foreach (var e in Model)
+        {
+            <tr>
+                <td>@e.EmployeeCode</td>
+                <td>@e.FullName</td>
+                <td>@e.Department.Name</td>
+                <td>@e.Phone</td>
+                <td>@(e.IsActive ? "ใช้งาน" : "ปิด")</td>
+                <td><a asp-action="Edit" asp-route-id="@e.Id">แก้ไข</a></td>
+            </tr>
+        }
+        </tbody>
+    </table>
+</div>

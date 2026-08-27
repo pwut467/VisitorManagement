@@ -1,0 +1,82 @@
+@model IEnumerable<Visit>
+@{
+    ViewData["Title"] = "ประวัติการเข้าพบ";
+    var filter = ViewBag.Filter as VisitListFilter ?? new VisitListFilter();
+    var here = Context.Request.Path + Context.Request.QueryString;
+    var seq = 0;
+}
+
+<div class="card vm-card p-3 mb-3">
+    <form method="get" class="row g-2 align-items-end">
+        <div class="col-md-3">
+            <label class="form-label">ค้นหา</label>
+            <input name="Q" value="@filter.Q" class="form-control" placeholder="ชื่อ, รหัสบัตร, บริษัท, ทะเบียนรถ" />
+        </div>
+        <div class="col-md-2">
+            <label class="form-label">สถานะ</label>
+            <select name="Status" class="form-select">
+                <option value="">ทั้งหมด</option>
+                <option value="@VisitStatus.CheckedIn" selected="@(filter.Status == VisitStatus.CheckedIn)">CheckedIn</option>
+                <option value="@VisitStatus.CheckedOut" selected="@(filter.Status == VisitStatus.CheckedOut)">CheckedOut</option>
+            </select>
+        </div>
+        <div class="col-md-2">
+            <label class="form-label">จากวันที่</label>
+            <input type="date" name="From" class="form-control" value="@(filter.From?.ToString("yyyy-MM-dd"))" />
+        </div>
+        <div class="col-md-2">
+            <label class="form-label">ถึงวันที่</label>
+            <input type="date" name="To" class="form-control" value="@(filter.To?.ToString("yyyy-MM-dd"))" />
+        </div>
+        <div class="col-md-3">
+            <button class="btn btn-teal">ค้นหา</button>
+            <a class="btn btn-outline-secondary" asp-action="Index">ล้าง</a>
+        </div>
+    </form>
+</div>
+
+<div class="card vm-card p-3">
+    <div class="table-responsive">
+        <table class="table table-striped table-hover align-middle mb-0">
+            <thead>
+            <tr>
+                <th class="col-seq text-center">ลำดับ</th>
+                <th>รหัสเอกสาร</th>
+                <th>ผู้มาติดต่อ</th>
+                <th>ประเภท</th>
+                <th>มาหา</th>
+                <th>เข้า</th>
+                <th>ออก</th>
+                <th>สถานะ</th>
+                <th></th>
+            </tr>
+            </thead>
+            <tbody>
+            @foreach (var v in Model)
+            {
+                var stripe = (++seq % 2 == 1) ? "row-odd" : "row-even";
+                <tr class="@stripe">
+                    <td class="col-seq text-center">@seq</td>
+                    <td class="fw-semibold text-nowrap">
+                        <a asp-action="Details" asp-route-id="@v.Id" asp-route-returnUrl="@here">@v.VisitNumber</a>
+                    </td>
+                    <td>@v.GuestFullName<br /><span class="small text-muted">@v.CompanyName</span></td>
+                    <td>@v.VisitorType.Name</td>
+                    <td>@v.HostEmployee.FullName</td>
+                    <td>@v.CheckInAt?.ToString("dd/MM HH:mm")</td>
+                    <td>@v.CheckOutAt?.ToString("dd/MM HH:mm")</td>
+                    <td><span class="badge bg-secondary">@v.Status</span></td>
+                    <td class="text-nowrap">
+                        <a class="btn btn-sm btn-outline-primary" asp-action="Details" asp-route-id="@v.Id" asp-route-returnUrl="@here">เปิด</a>
+                        <a class="btn btn-sm btn-outline-secondary" asp-action="Badge" asp-route-id="@v.Id" asp-route-returnUrl="@here">พิมพ์ซ้ำ</a>
+                    </td>
+                </tr>
+            }
+            @if (!Model.Any())
+            {
+                <tr><td colspan="9" class="text-muted">ไม่พบรายการ</td></tr>
+            }
+            </tbody>
+        </table>
+    </div>
+</div>

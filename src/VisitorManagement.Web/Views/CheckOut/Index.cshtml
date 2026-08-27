@@ -1,0 +1,38 @@
+@{
+    ViewData["Title"] = "Check-out / คืนบัตร Visitor";
+    var gates = ViewBag.Gates as IEnumerable<SelectListItem> ?? [];
+}
+
+<div class="row g-3">
+    <div class="col-lg-6">
+        <div class="card vm-card p-4">
+            <h2 class="h5">สแกนบัตร Visitor</h2>
+            <p class="text-muted">ใช้เครื่องสแกน QR แบบ USB (keyboard wedge) หรือพิมพ์รหัสบัตร</p>
+            <form asp-action="Index" method="post">
+                @if (ViewBag.ReturnUrl is string returnUrl && !string.IsNullOrEmpty(returnUrl))
+                {
+                    <input type="hidden" name="returnUrl" value="@returnUrl" />
+                }
+                <label class="form-label">รหัสบัตร / Visit Number</label>
+                <input name="code" id="code" class="form-control form-control-lg mb-3"
+                       value="@ViewBag.Code" autofocus placeholder="สแกนที่นี่"
+                       lang="en" inputmode="latin" spellcheck="false" autocomplete="off"
+                       title="ช่องนี้ใช้ภาษาอังกฤษ (ถ้าคีย์บอร์ดเป็นไทย ระบบจะแปลงให้อัตโนมัติ)" />
+                <label class="form-label">จุดออก</label>
+                <select name="gateOutId" class="form-select mb-3" asp-items="gates"></select>
+                <label class="form-label">หมายเหตุ (เช่น บัตรหาย)</label>
+                <input name="notes" class="form-control mb-3" />
+                <button class="btn btn-teal">บันทึกเวลาออก</button>
+            </form>
+            <hr />
+            <div id="preview-box" class="d-none">
+                <div class="fw-semibold" id="p-name"></div>
+                <div class="small text-muted" id="p-meta"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="~/js/checkout.js" asp-append-version="true"></script>
+}

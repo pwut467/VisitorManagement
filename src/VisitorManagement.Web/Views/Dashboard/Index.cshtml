@@ -1,0 +1,91 @@
+@model DashboardViewModel
+@{
+    ViewData["Title"] = "แดชบอร์ด";
+    var maxHour = Math.Max(1, Model.Hourly.MaxBy(x => x.Count)?.Count ?? 1);
+    var here = Context.Request.Path + Context.Request.QueryString;
+    var seq = 0;
+}
+
+<div class="row g-3 mb-3">
+    <div class="col-md-4">
+        <div class="card vm-card stat-card stat-onsite p-3">
+            <i class="bi bi-people-fill stat-icon"></i>
+            <div class="stat-label">อยู่ในพื้นที่</div>
+            <div class="stat-value">@Model.OnSiteCount</div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card vm-card stat-card stat-checkin p-3">
+            <i class="bi bi-box-arrow-in-right stat-icon"></i>
+            <div class="stat-label">Check-in วันนี้</div>
+            <div class="stat-value">@Model.TodayCheckIns</div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card vm-card stat-card stat-checkout p-3">
+            <i class="bi bi-box-arrow-right stat-icon"></i>
+            <div class="stat-label">Check-out วันนี้</div>
+            <div class="stat-value">@Model.TodayCheckOuts</div>
+        </div>
+    </div>
+</div>
+
+<div class="card vm-card p-3 mb-3">
+    <div class="d-flex justify-content-between align-items-center mb-2">
+        <h2 class="h6 mb-0">ผู้ที่อยู่ในพื้นที่</h2>
+        <a class="link-accent" asp-controller="Visits" asp-action="OnSite">ดูทั้งหมด</a>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-dashboard table-striped table-hover align-middle mb-0">
+            <thead>
+            <tr>
+                <th class="col-seq text-center">ลำดับ</th>
+                <th>บัตร</th>
+                <th>ผู้มาติดต่อ</th>
+                <th>ทะเบียนรถ</th>
+                <th>มาหา</th>
+                <th>เข้าเมื่อ</th>
+                <th></th>
+            </tr>
+            </thead>
+            <tbody>
+            @if (!Model.OnSite.Any())
+            {
+                <tr><td colspan="7" class="text-muted">ยังไม่มีผู้มาติดต่อในพื้นที่</td></tr>
+            }
+            @foreach (var v in Model.OnSite)
+            {
+                var stripe = (++seq % 2 == 1) ? "row-odd" : "row-even";
+                <tr class="@stripe">
+                    <td class="col-seq text-center">@seq</td>
+                    <td class="fw-semibold text-nowrap">@v.VisitNumber</td>
+                    <td>@v.GuestFullName<br /><span class="small text-muted">@v.CompanyName</span></td>
+                    <td class="text-nowrap">@(string.IsNullOrWhiteSpace(v.VehiclePlate) ? "—" : v.VehiclePlate)</td>
+                    <td>@v.HostEmployee.FullName</td>
+                    <td>@v.CheckInAt?.ToString("HH:mm")</td>
+                    <td class="text-nowrap">
+                        <a class="btn btn-sm btn-outline-primary" asp-controller="Visits" asp-action="Details" asp-route-id="@v.Id" asp-route-returnUrl="@here">รายละเอียด</a>
+                        <a class="btn btn-sm btn-outline-secondary" asp-controller="Visits" asp-action="Badge" asp-route-id="@v.Id" asp-route-returnUrl="@here">พิมพ์ซ้ำ</a>
+                    </td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    </div>
+</div>
+<div class="card vm-card p-3">
+    <h2 class="h6">Check-in รายชั่วโมงวันนี้</h2>
+    <div class="hour-bar mt-2">
+        @foreach (var h in Model.Hourly)
+        {
+            var height = (int)Math.Round(100.0 * h.Count / maxHour);
+            <div class="bar" title="@h.Label:00 = @h.Count" style="height:@(Math.Max(6, height))%"></div>
+        }
+    </div>
+    <div class="d-flex justify-content-between small text-muted mt-1">
+        @foreach (var h in Model.Hourly)
+        {
+            <span>@h.Label</span>
+        }
+    </div>
+</div>

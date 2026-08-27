@@ -1,0 +1,18 @@
+using System.ComponentModel.DataAnnotations;
+
+namespace VisitorManagement.Web.ViewModels;
+
+public class LoginViewModel
+{
+    [Required(ErrorMessage = "กรุณากรอกชื่อผู้ใช้")]
+    [Display(Name = "ชื่อผู้ใช้")]
+    public string UserName { get; set; } = string.Empty;
+
+    [Required(ErrorMessage = "กรุณากรอกรหัสผ่าน")]
+    [DataType(DataType.Password)]
+    [Display(Name = "รหัสผ่าน")]
+    public string Password { get; set; } = string.Empty;
+
+    [Display(Name = "จดจำการเข้าสู่ระบบ")]
+    public bool RememberMe { get; set; }
+}
