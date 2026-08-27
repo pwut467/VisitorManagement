@@ -56,6 +56,10 @@ builder.Services.AddControllersWithViews(options =>
 });
 
 builder.Services.AddHttpContextAccessor();
+builder.Services.AddHttpClient("CardReaderAgent", client =>
+{
+    client.Timeout = TimeSpan.FromSeconds(5);
+});
 builder.Services.AddScoped<ICompanyContext, CompanyContext>();
 builder.Services.AddScoped<IVisitNumberService, VisitNumberService>();
 builder.Services.AddScoped<IQrCodeService, QrCodeService>();

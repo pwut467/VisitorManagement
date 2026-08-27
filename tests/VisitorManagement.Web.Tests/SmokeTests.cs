@@ -39,10 +39,10 @@ public class SmokeTests : IClassFixture<AppFactory>
     }
 
     [Fact]
-    public async Task DashboardRedirectsAnonymousToLogin()
+    public async Task CardReaderProxyRedirectsAnonymousToLogin()
     {
         var client = _factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
-        var response = await client.GetAsync("/");
+        var response = await client.GetAsync("/api/card-reader/status");
         Assert.Equal(System.Net.HttpStatusCode.Redirect, response.StatusCode);
         Assert.Contains("/Account/Login", response.Headers.Location?.ToString());
     }

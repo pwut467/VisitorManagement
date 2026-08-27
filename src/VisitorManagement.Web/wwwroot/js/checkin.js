@@ -8,7 +8,7 @@
   const alertBox = document.getElementById('id-alert');
   const readerBadge = document.getElementById('reader-badge');
   const readerDetail = document.getElementById('reader-detail');
-  const agentUrl = (document.getElementById('card-reader-config')?.dataset.url || 'http://127.0.0.1:5001').replace(/\/$/, '');
+  const agentUrl = (document.getElementById('card-reader-config')?.dataset.url || '/api/card-reader').replace(/\/$/, '');
   let stream = null;
   let waitingForCard = false;
   const nationalIdHidden = document.getElementById('NationalId');
@@ -152,12 +152,16 @@
 
   async function refreshReaderStatus() {
     try {
-      const res = await fetch(agentUrl + '/api/status', {
-        signal: AbortSignal.timeout(1500),
-        mode: 'cors',
-        cache: 'no-store'
+      const res = await fetch(agentUrl + '/status', {
+        signal: AbortSignal.timeout(3000),
+        cache: 'no-store',
+        credentials: 'same-origin'
       });
       const data = await res.json();
+      if (!res.ok || data.ok === false) {
+        setBadge('bg-danger', 'ยังไม่เปิดโปรแกรมอ่านบัตร', data.message || 'รัน VisitorManagement.CardReader (พอร์ต 5001)');
+        return null;
+      }
       if (data.pcscAvailable === false) {
         setBadge('bg-warning text-dark', 'PC/SC ยังไม่พร้อม', data.message || 'เปิดบริการ Smart Card / pcscd');
       } else if (!data.hasReader) {
@@ -169,16 +173,16 @@
       }
       return data;
     } catch {
-      setBadge('bg-danger', 'ยังไม่เปิดโปรแกรมอ่านบัตร', 'เปิด VisitorManagement.CardReader บนเครื่องนี้ (พอร์ต 5001)');
+      setBadge('bg-danger', 'ยังไม่เปิดโปรแกรมอ่านบัตร', 'รัน VisitorManagement.CardReader (พอร์ต 5001) แล้วรีเฟรชหน้า');
       return null;
     }
   }
 
   async function readCardOnce() {
-    const res = await fetch(agentUrl + '/api/thcard?photo=true', {
-      signal: AbortSignal.timeout(20000),
-      mode: 'cors',
-      cache: 'no-store'
+    const res = await fetch(agentUrl + '/thcard?photo=true', {
+      signal: AbortSignal.timeout(25000),
+      cache: 'no-store',
+      credentials: 'same-origin'
     });
     const card = await res.json();
     if (!res.ok || card.ok === false) {
@@ -200,7 +204,7 @@
       if (!status) {
         showAlert(
           'danger',
-          'เปิดโปรแกรมอ่านบัตรบนเครื่องนี้ไม่สำเร็จ — รัน src/VisitorManagement.CardReader (พอร์ต 5001) บนเครื่องที่เสียบ USB เครื่องอ่าน'
+          'ติดต่อโปรแกรมอ่านบัตรไม่ได้ — รัน src/VisitorManagement.CardReader ที่พอร์ต 5001 บนเครื่องที่รันเว็บนี้ แล้วรีเฟรชหน้า'
         );
         return;
       }
@@ -235,7 +239,7 @@
       if (err.name === 'TimeoutError' || err.name === 'AbortError' || err.message === 'Failed to fetch') {
         showAlert(
           'danger',
-          'ติดต่อโปรแกรมอ่านบัตรที่ ' + agentUrl + ' ไม่ได้ — รัน CardReader บนเครื่องนี้แล้วรีเฟรชหน้า'
+          'ติดต่อโปรแกรมอ่านบัตรไม่ได้ — รัน CardReader ที่พอร์ต 5001 บนเครื่องที่รันเว็บ แล้วรีเฟรชหน้า'
         );
       } else {
         showAlert('danger', err.message || 'อ่านบัตรไม่สำเร็จ');
