@@ -14,6 +14,36 @@
   const nationalIdHidden = document.getElementById('NationalId');
   const nationalIdDisplay = document.getElementById('NationalIdDisplay');
 
+  function isDirectAgentUrl(url) {
+    return /^https?:\/\//i.test(url);
+  }
+
+  /** Build status/thcard URL for either same-origin proxy or direct CardReader agent. */
+  function cardEndpoint(resource, query) {
+    const path = isDirectAgentUrl(agentUrl)
+      ? agentUrl + '/api/' + resource
+      : agentUrl + '/' + resource;
+    return query ? path + '?' + query : path;
+  }
+
+  async function readJsonResponse(res) {
+    const text = await res.text();
+    if (!text || !text.trim()) {
+      const err = new Error(res.status === 404
+        ? 'ไม่พบ API อ่านบัตร — รีเฟรชหน้าแล้วลองใหม่'
+        : 'โปรแกรมอ่านบัตรตอบกลับว่าง');
+      err.code = 'empty_response';
+      throw err;
+    }
+    try {
+      return JSON.parse(text);
+    } catch {
+      const err = new Error('โปรแกรมอ่านบัตรตอบกลับไม่ใช่ JSON');
+      err.code = 'bad_json';
+      throw err;
+    }
+  }
+
   function digitsOnly(value) {
     return (value || '').replace(/\D/g, '');
   }
@@ -152,12 +182,12 @@
 
   async function refreshReaderStatus() {
     try {
-      const res = await fetch(agentUrl + '/status', {
+      const res = await fetch(cardEndpoint('status'), {
         signal: AbortSignal.timeout(3000),
         cache: 'no-store',
         credentials: 'same-origin'
       });
-      const data = await res.json();
+      const data = await readJsonResponse(res);
       if (!res.ok || data.ok === false) {
         setBadge('bg-danger', 'ยังไม่เปิดโปรแกรมอ่านบัตร', data.message || 'รัน VisitorManagement.CardReader (พอร์ต 5001)');
         return null;
@@ -172,19 +202,19 @@
         setBadge('bg-success', 'พบบัตรในเครื่องอ่าน', (data.readers || []).join(', '));
       }
       return data;
-    } catch {
-      setBadge('bg-danger', 'ยังไม่เปิดโปรแกรมอ่านบัตร', 'รัน VisitorManagement.CardReader (พอร์ต 5001) แล้วรีเฟรชหน้า');
+    } catch (err) {
+      setBadge('bg-danger', 'ยังไม่เปิดโปรแกรมอ่านบัตร', err.message || 'รัน VisitorManagement.CardReader (พอร์ต 5001) แล้วรีเฟรชหน้า');
       return null;
     }
   }
 
   async function readCardOnce() {
-    const res = await fetch(agentUrl + '/thcard?photo=true', {
+    const res = await fetch(cardEndpoint('thcard', 'photo=true'), {
       signal: AbortSignal.timeout(25000),
       cache: 'no-store',
       credentials: 'same-origin'
     });
-    const card = await res.json();
+    const card = await readJsonResponse(res);
     if (!res.ok || card.ok === false) {
       const err = new Error(card.message || 'อ่านบัตรไม่สำเร็จ');
       err.code = card.error;

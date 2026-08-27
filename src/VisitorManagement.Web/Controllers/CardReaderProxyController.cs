@@ -29,14 +29,17 @@ public class CardReaderProxyController : Controller
         (_config["CardReader:AgentUrl"] ?? "http://127.0.0.1:5001").TrimEnd('/');
 
     [HttpGet("health")]
+    [HttpGet("api/health")]
     public Task<IActionResult> Health(CancellationToken cancellationToken) =>
         ProxyGetAsync("/health", cancellationToken);
 
     [HttpGet("status")]
+    [HttpGet("api/status")]
     public Task<IActionResult> Status(CancellationToken cancellationToken) =>
         ProxyGetAsync("/api/status", cancellationToken);
 
     [HttpGet("thcard")]
+    [HttpGet("api/thcard")]
     public Task<IActionResult> ThCard([FromQuery] bool photo = true, CancellationToken cancellationToken = default) =>
         ProxyGetAsync("/api/thcard?photo=" + (photo ? "true" : "false"), cancellationToken, TimeSpan.FromSeconds(25));
 
@@ -50,6 +53,16 @@ public class CardReaderProxyController : Controller
         {
             using var response = await client.GetAsync(AgentBase + pathAndQuery, timeoutCts.Token);
             var body = await response.Content.ReadAsStringAsync(timeoutCts.Token);
+            if (string.IsNullOrWhiteSpace(body))
+            {
+                return StatusCode((int)response.StatusCode, new
+                {
+                    ok = false,
+                    error = "empty_response",
+                    message = "โปรแกรมอ่านบัตรตอบกลับว่าง (HTTP " + (int)response.StatusCode + ")"
+                });
+            }
+
             var contentType = response.Content.Headers.ContentType?.ToString() ?? "application/json";
             return new ContentResult
             {
