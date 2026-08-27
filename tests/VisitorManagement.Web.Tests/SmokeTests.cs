@@ -39,6 +39,15 @@ public class SmokeTests : IClassFixture<AppFactory>
     }
 
     [Fact]
+    public async Task DashboardRedirectsAnonymousToLogin()
+    {
+        var client = _factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
+        var response = await client.GetAsync("/");
+        Assert.Equal(System.Net.HttpStatusCode.Redirect, response.StatusCode);
+        Assert.Contains("/Account/Login", response.Headers.Location?.ToString());
+    }
+
+    [Fact]
     public async Task CardReaderProxyRedirectsAnonymousToLogin()
     {
         var client = _factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
