@@ -7,6 +7,7 @@
 <form asp-action="Index" method="post" id="checkin-form">
     <input type="hidden" asp-for="VisitId" />
     <input type="hidden" asp-for="PhotoDataUrl" />
+    <input type="hidden" asp-for="CardPhotoDataUrl" />
     <input type="hidden" asp-for="SubmitAction" />
 
     <div class="row g-3">
@@ -100,10 +101,18 @@
         </div>
         <div class="col-lg-4">
             <div class="card vm-card p-3 mb-3">
-                <h2 class="h5">ถ่ายรูป</h2>
+                <h2 class="h6 mb-2">รูปจากบัตรประชาชน</h2>
+                <div class="photo-frame mb-2" id="card-photo-frame">
+                    <div id="card-photo-empty" class="text-muted small d-flex align-items-center justify-content-center h-100 px-2 text-center">กด “อ่านบัตรประชาชน” เพื่อดึงรูปจากชิปบัตร</div>
+                    <img id="card-preview" class="d-none" alt="card photo" />
+                </div>
+                <button type="button" class="btn btn-outline-secondary btn-sm" id="btn-clear-card-photo">ล้างรูปบัตร</button>
+            </div>
+            <div class="card vm-card p-3 mb-3">
+                <h2 class="h6 mb-2">รูปจากกล้อง (Webcam)</h2>
                 <div class="photo-frame mb-2" id="photo-frame">
                     <video id="cam" autoplay playsinline muted></video>
-                    <img id="preview" class="d-none" alt="visitor photo" />
+                    <img id="preview" class="d-none" alt="webcam photo" />
                 </div>
                 <div class="d-flex gap-2 flex-wrap">
                     <button type="button" class="btn btn-outline-primary btn-sm" id="btn-start-cam">เปิดกล้อง</button>

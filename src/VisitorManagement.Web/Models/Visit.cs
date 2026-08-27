@@ -89,6 +89,10 @@ public class Visit
     [MaxLength(260)]
     public string? PhotoPath { get; set; }
 
+    /// <summary>Thai national ID card chip photo for this visit.</summary>
+    [MaxLength(260)]
+    public string? CardPhotoPath { get; set; }
+
     public string? RegisteredByUserId { get; set; }
     public ApplicationUser? RegisteredByUser { get; set; }
 

@@ -38,6 +38,10 @@ public class Visitor
     [MaxLength(260)]
     public string? PhotoPath { get; set; }
 
+    /// <summary>Latest Thai national ID card chip photo linked to this visitor profile.</summary>
+    [MaxLength(260)]
+    public string? CardPhotoPath { get; set; }
+
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
 

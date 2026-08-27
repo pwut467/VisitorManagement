@@ -3,8 +3,11 @@
   if (!form) return;
 
   const photoInput = document.getElementById('PhotoDataUrl');
+  const cardPhotoInput = document.getElementById('CardPhotoDataUrl');
   const video = document.getElementById('cam');
   const preview = document.getElementById('preview');
+  const cardPreview = document.getElementById('card-preview');
+  const cardPhotoEmpty = document.getElementById('card-photo-empty');
   const alertBox = document.getElementById('id-alert');
   const readerBadge = document.getElementById('reader-badge');
   const readerDetail = document.getElementById('reader-detail');
@@ -95,6 +98,20 @@
     if (readerDetail) readerDetail.textContent = detail || '';
   }
 
+  function setCardPhoto(dataUrl) {
+    if (!cardPhotoInput) return;
+    cardPhotoInput.value = dataUrl || '';
+    if (dataUrl && cardPreview) {
+      cardPreview.src = dataUrl;
+      cardPreview.classList.remove('d-none');
+      cardPhotoEmpty?.classList.add('d-none');
+    } else if (cardPreview) {
+      cardPreview.removeAttribute('src');
+      cardPreview.classList.add('d-none');
+      cardPhotoEmpty?.classList.remove('d-none');
+    }
+  }
+
   document.getElementById('btn-start-cam')?.addEventListener('click', async () => {
     try {
       stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user', width: 640, height: 480 } });
@@ -102,7 +119,7 @@
       video.classList.remove('d-none');
       preview.classList.add('d-none');
     } catch {
-      showAlert('warning', 'เปิดกล้องไม่ได้ — อนุญาตกล้องในเบราว์เซอร์ หรือใช้รูปจากบัตรประชาชน');
+      showAlert('warning', 'เปิดกล้องไม่ได้ — อนุญาตกล้องในเบราว์เซอร์ หรือใช้รูปจากบัตรประชาชนแยกต่างหาก');
     }
   });
 
@@ -122,6 +139,10 @@
     photoInput.value = '';
     preview.classList.add('d-none');
     video.classList.remove('d-none');
+  });
+
+  document.getElementById('btn-clear-card-photo')?.addEventListener('click', () => {
+    setCardPhoto('');
   });
 
   async function lookupVisitor(options) {
@@ -301,10 +322,7 @@
     }
     const photo = card.photo || card.PhotoDataUrl;
     if (photo) {
-      photoInput.value = photo;
-      preview.src = photo;
-      preview.classList.remove('d-none');
-      video.classList.add('d-none');
+      setCardPhoto(photo);
     }
   }
 

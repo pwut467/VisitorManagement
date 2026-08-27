@@ -97,6 +97,7 @@ public class CheckOutController : Controller
             company = visit.CompanyName,
             host = visit.HostEmployee.FullName,
             photo = visit.PhotoPath,
+            cardPhoto = visit.CardPhotoPath,
             checkInAt = visit.CheckInAt?.ToString("dd/MM/yyyy HH:mm"),
             onSite = visit.Status == VisitStatus.CheckedIn
         });

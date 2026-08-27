@@ -212,13 +212,36 @@ public class VisitRegistrationService : IVisitRegistrationService
 
         await _db.SaveChangesAsync(cancellationToken);
 
-        var photo = await _photos.SaveDataUrlAsync(model.PhotoDataUrl, visit.VisitCode, cancellationToken);
-        if (photo is not null)
+        var webcamPhoto = await _photos.SaveDataUrlAsync(model.PhotoDataUrl, visit.VisitCode + "-webcam", cancellationToken);
+        var cardPhoto = await _photos.SaveDataUrlAsync(model.CardPhotoDataUrl, visit.VisitCode + "-card", cancellationToken);
+        if (webcamPhoto is not null || cardPhoto is not null)
         {
-            visit.PhotoPath = photo;
+            if (webcamPhoto is not null)
+            {
+                visit.PhotoPath = webcamPhoto;
+            }
+
+            if (cardPhoto is not null)
+            {
+                visit.CardPhotoPath = cardPhoto;
+            }
+
             if (isNewVisitor)
             {
-                visitor!.PhotoPath = photo;
+                if (webcamPhoto is not null)
+                {
+                    visitor!.PhotoPath = webcamPhoto;
+                }
+
+                if (cardPhoto is not null)
+                {
+                    visitor!.CardPhotoPath = cardPhoto;
+                }
+            }
+            else if (visitor is not null && cardPhoto is not null)
+            {
+                // Refresh master card photo when the same NationalId returns with a new chip image.
+                visitor.CardPhotoPath = cardPhoto;
             }
 
             await _db.SaveChangesAsync(cancellationToken);

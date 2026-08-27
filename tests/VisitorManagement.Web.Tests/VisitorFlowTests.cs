@@ -82,6 +82,29 @@ public class VisitNumberServiceTests
 public class VisitRegistrationServiceTests
 {
     [Fact]
+    public async Task StoresCardAndWebcamPhotosSeparately()
+    {
+        var db = TestDb.Create();
+        await TestDb.SeedGraphAsync(db);
+        var photos = new TestDb.RecordingPhotos();
+        var svc = TestDb.CreateRegistration(db, photos);
+
+        var model = TestDb.ValidCheckIn(db);
+        model.PhotoDataUrl = "data:image/jpeg;base64,webcam";
+        model.CardPhotoDataUrl = "data:image/jpeg;base64,card";
+
+        var result = await svc.RegisterAsync(model, "user-1");
+        Assert.True(result.Succeeded);
+        var visit = await db.Visits.Include(v => v.Visitor).SingleAsync();
+        Assert.Equal("/uploads/photos/" + visit.VisitCode + "-webcam.jpg", visit.PhotoPath);
+        Assert.Equal("/uploads/photos/" + visit.VisitCode + "-card.jpg", visit.CardPhotoPath);
+        Assert.Equal(visit.PhotoPath, visit.Visitor.PhotoPath);
+        Assert.Equal(visit.CardPhotoPath, visit.Visitor.CardPhotoPath);
+        Assert.Contains(visit.VisitCode + "-webcam", photos.SavedStems);
+        Assert.Contains(visit.VisitCode + "-card", photos.SavedStems);
+    }
+
+    [Fact]
     public async Task CheckInThenCheckOut()
     {
         var db = TestDb.Create();
@@ -415,8 +438,8 @@ internal static class TestDb
         SubmitAction = "checkin"
     };
 
-    public static VisitRegistrationService CreateRegistration(AppDbContext db) =>
-        new(db, new VisitNumberService(db), new BlacklistService(db), new NullPhotos(), new AuditService(db), new NullCloudSync(), new TestCompanyContext(db));
+    public static VisitRegistrationService CreateRegistration(AppDbContext db, IPhotoStorageService? photos = null) =>
+        new(db, new VisitNumberService(db), new BlacklistService(db), photos ?? new NullPhotos(), new AuditService(db), new NullCloudSync(), new TestCompanyContext(db));
 
     private sealed class TestCompanyContext : ICompanyContext
     {
@@ -453,6 +476,24 @@ internal static class TestDb
             await _db.SaveChangesAsync(cancellationToken);
             return company;
         }
+    }
+
+    public sealed class RecordingPhotos : IPhotoStorageService
+    {
+        public List<string> SavedStems { get; } = [];
+
+        public Task<string?> SaveDataUrlAsync(string? dataUrl, string fileStem, CancellationToken cancellationToken = default)
+        {
+            if (string.IsNullOrWhiteSpace(dataUrl))
+            {
+                return Task.FromResult<string?>(null);
+            }
+
+            SavedStems.Add(fileStem);
+            return Task.FromResult<string?>("/uploads/photos/" + fileStem + ".jpg");
+        }
+
+        public string? PublicUrl(string? relativePath) => relativePath;
     }
 
     private sealed class NullPhotos : IPhotoStorageService

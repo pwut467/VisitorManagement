@@ -56,7 +56,8 @@ public class ApiController : Controller
                 visitor.Phone,
                 visitor.CompanyName,
                 visitor.Address,
-                visitor.PhotoPath
+                visitor.PhotoPath,
+                visitor.CardPhotoPath
             }
         });
     }

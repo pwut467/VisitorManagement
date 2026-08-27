@@ -276,6 +276,7 @@ public sealed class CloudVisitSyncService : ICloudVisitSyncService
         cloudVisit.PdpaConsentAt = local.PdpaConsentAt;
         cloudVisit.Status = local.Status;
         cloudVisit.PhotoPath = local.PhotoPath;
+        cloudVisit.CardPhotoPath = local.CardPhotoPath;
         cloudVisit.RegisteredByUserId = null;
         cloudVisit.CheckedOutByUserId = null;
         cloudVisit.CloudSynced = true;
@@ -341,6 +342,7 @@ public sealed class CloudVisitSyncService : ICloudVisitSyncService
                 Address = local.Address,
                 DateOfBirth = local.DateOfBirth,
                 PhotoPath = local.PhotoPath,
+                CardPhotoPath = local.CardPhotoPath,
                 CreatedAt = local.CreatedAt,
                 UpdatedAt = local.UpdatedAt
             };

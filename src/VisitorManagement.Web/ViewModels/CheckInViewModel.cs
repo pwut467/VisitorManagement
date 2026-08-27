@@ -73,6 +73,9 @@ public class CheckInViewModel
 
     public string? PhotoDataUrl { get; set; }
 
+    /// <summary>JPEG/PNG data URL from Thai ID card chip (separate from webcam).</summary>
+    public string? CardPhotoDataUrl { get; set; }
+
     public string SubmitAction { get; set; } = "checkin";
 
     public IEnumerable<SelectListItem> Titles { get; set; } = [];

@@ -87,11 +87,24 @@
             }
         </div>
     </div>
-    @if (!string.IsNullOrEmpty(Model.PhotoPath))
+    @if (!string.IsNullOrEmpty(Model.PhotoPath) || !string.IsNullOrEmpty(Model.CardPhotoPath))
     {
         <div class="col-lg-4">
-            <div class="card vm-card p-3 text-center">
-                <img src="@Model.PhotoPath" class="rounded" style="max-width:100%" alt="photo" />
+            <div class="d-grid gap-3">
+                @if (!string.IsNullOrEmpty(Model.CardPhotoPath))
+                {
+                    <div class="card vm-card p-3 text-center">
+                        <div class="small text-muted mb-2">รูปจากบัตรประชาชน</div>
+                        <img src="@Model.CardPhotoPath" class="rounded" style="max-width:100%" alt="card photo" />
+                    </div>
+                }
+                @if (!string.IsNullOrEmpty(Model.PhotoPath))
+                {
+                    <div class="card vm-card p-3 text-center">
+                        <div class="small text-muted mb-2">รูปจากกล้อง</div>
+                        <img src="@Model.PhotoPath" class="rounded" style="max-width:100%" alt="webcam photo" />
+                    </div>
+                }
             </div>
         </div>
     }
