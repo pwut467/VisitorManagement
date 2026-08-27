@@ -121,25 +121,17 @@ static IResult ReadCard(IPcscReaderHub hub, bool photo)
         return Results.Json(new
         {
             ok = true,
-            data.NationalId,
             nationalId = data.NationalId,
-            data.Title,
             title = data.Title,
-            data.FirstName,
             firstName = data.FirstName,
-            data.MiddleName,
             middleName = data.MiddleName,
-            data.LastName,
             lastName = data.LastName,
-            data.Address,
             address = data.Address,
-            data.DateOfBirth,
             dateOfBirth = data.DateOfBirth,
-            data.Gender,
             gender = data.Gender,
-            data.IssueDate,
-            data.ExpireDate,
-            data.Issuer,
+            issueDate = data.IssueDate,
+            expireDate = data.ExpireDate,
+            issuer = data.Issuer,
             photo = data.PhotoDataUrl,
             reader = data.ReaderName
         });
