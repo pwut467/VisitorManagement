@@ -15,10 +15,17 @@ public static class DbSeeder
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
         var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
         var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+        var config = scope.ServiceProvider.GetService<IConfiguration>();
 
         if (db.Database.IsSqlServer())
         {
-            await db.Database.MigrateAsync();
+            if (config is null)
+            {
+                throw new InvalidOperationException("IConfiguration is required to migrate SQL Server.");
+            }
+
+            var logger = scope.ServiceProvider.GetRequiredService<ILoggerFactory>().CreateLogger("DatabaseBootstrap");
+            await DatabaseBootstrap.EnsureMigratedAsync(db, config, logger);
         }
         else
         {
@@ -33,7 +40,6 @@ public static class DbSeeder
             }
         }
 
-        var config = scope.ServiceProvider.GetService<IConfiguration>();
         var cloudOpts = config is null ? new CloudOptions() : CloudOptions.FromConfiguration(config);
 
         if (!await db.CompanyProfiles.AnyAsync())

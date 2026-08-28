@@ -8,6 +8,9 @@ using VisitorManagement.Web.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Optional per-machine overrides (not committed). Copy from appsettings.Local.json.example.
+builder.Configuration.AddJsonFile("appsettings.Local.json", optional: true, reloadOnChange: true);
+
 var provider = builder.Environment.IsEnvironment("Testing")
     ? "InMemory"
     : builder.Configuration["Database:Provider"] ?? "SqlServer";

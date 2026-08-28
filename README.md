@@ -121,6 +121,35 @@ dotnet run
 
 ต้องมี SQL Server Express รันอยู่ และบัญชี Windows (หรือ sa) มีสิทธิ์สร้างฐานข้อมูล
 
+### รันบนเครื่องอื่นแล้วสร้าง DB ไม่สำเร็จ
+
+ถ้า log มี `Failed executing DbCommand ... CREATE DATABASE [VisitorManagment]` แปลว่าเครื่องนั้นเชื่อม `.\SQLEXPRESS` ไม่ได้ หรือไม่มีสิทธิ์สร้างฐาน
+
+1. ตรวจว่า SQL Server / Express / LocalDB ติดตั้งและบริการทำงาน
+2. คัดลอกไฟล์ตั้งค่าเฉพาะเครื่อง:
+
+```bash
+cp src/VisitorManagement.Web/appsettings.Local.json.example src/VisitorManagement.Web/appsettings.Local.json
+```
+
+แล้วแก้ `ConnectionStrings:SqlServer` ให้ตรง instance จริง เช่น
+
+```
+Server=.\SQLEXPRESS;Database=VisitorManagment;Trusted_Connection=True;TrustServerCertificate=True;MultipleActiveResultSets=True
+Server=(localdb)\MSSQLLocalDB;Database=VisitorManagment;Trusted_Connection=True;TrustServerCertificate=True;MultipleActiveResultSets=True
+Server=localhost;Database=VisitorManagment;Trusted_Connection=True;TrustServerCertificate=True;MultipleActiveResultSets=True
+Server=localhost,1433;Database=VisitorManagment;User Id=sa;Password=Your_password123;TrustServerCertificate=True;MultipleActiveResultSets=True
+```
+
+3. หรือสร้างฐาน `VisitorManagment` ใน SSMS ก่อน แล้วให้บัญชีที่รันแอปเป็น `db_owner`
+4. Docker: `docker compose up -d` แล้วใช้ connection string พอร์ต `1433` ตามด้านบน
+
+หรือตั้งผ่าน environment variable:
+
+```
+ConnectionStrings__SqlServer=Server=.\SQLEXPRESS;Database=VisitorManagment;Trusted_Connection=True;TrustServerCertificate=True;MultipleActiveResultSets=True
+```
+
 ### บัญชีเริ่มต้น
 
 | ชื่อผู้ใช้ | รหัสผ่าน | สิทธิ์ |
