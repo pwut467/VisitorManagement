@@ -127,24 +127,26 @@ dotnet run
 
 เวอร์ชันล่าสุดจะ**ไม่ crash** แต่พาไปหน้า `/Home/Database` อธิบายวิธีแก้ และเขียนไฟล์ `logs/startup-error.txt`
 
-#### สาเหตุ: `No process is on the other end of the pipe`
+#### สาเหตุ: `No process is on the other end of the pipe` (แม้ติดตั้ง Express + สร้าง DB แล้ว)
 
-แปลว่าเครื่องนี้**ไม่มี `SQL Server (SQLEXPRESS)` ที่กำลังรัน** (หรือชื่อ instance ไม่ตรง)
+แปลว่าแอปยัง**ต่อเข้า instance ไม่ได้** (คนละเรื่องกับการมีไฟล์ฐานข้อมูล) — พบบ่อยเมื่อใช้ `Server=.\SQLEXPRESS` แล้ว Named Pipes มีปัญหา หรือบริการหยุด
 
-1. `Win+R` → `services.msc` → หา **SQL Server (SQLEXPRESS)** → Start (ตั้ง Automatic)
-2. ถ้าไม่มีบริการนี้ → ติดตั้ง SQL Server Express **หรือ** ใช้ LocalDB / Docker ตามด้านล่าง
-3. ทางลัด: สร้าง `appsettings.Local.json` ข้าง `VisitorManagement.Web.dll`:
+1. `services.msc` → **SQL Server (SQLEXPRESS)** ต้องเป็น **Running** (Restart ครั้งหนึ่ง)
+2. **SQL Server Configuration Manager** → Protocols for SQLEXPRESS → เปิด **TCP/IP** + **Named Pipes** → Restart บริการ
+3. สร้าง `appsettings.Local.json` ข้าง `VisitorManagement.Web.dll`:
 
 ```json
 {
   "ConnectionStrings": {
-    "SqlServer": "Server=(localdb)\\MSSQLLocalDB;Database=VisitorManagment;Trusted_Connection=True;TrustServerCertificate=True;MultipleActiveResultSets=True"
+    "SqlServer": "Server=localhost\\SQLEXPRESS;Database=VisitorManagment;Trusted_Connection=True;TrustServerCertificate=True;MultipleActiveResultSets=True"
   }
 }
 ```
 
-4. หรือ Docker: `docker compose up -d` แล้วใช้ `Server=localhost,1433;User Id=sa;Password=Your_password123;...`
-5. รีสตาร์ท Application Pool / เว็บไซต์
+4. ชื่อฐานต้องตรง: **`VisitorManagment`** (สะกดตามโปรเจกต์)
+5. ถ้าเป็น **IIS** ใช้ SQL Auth แทน Trusted_Connection:
+   `Server=localhost\SQLEXPRESS;Database=VisitorManagment;User Id=sa;Password=...;TrustServerCertificate=True;MultipleActiveResultSets=True`
+6. ทดสอบด้วย `.\scripts\test-sql-connection.ps1` หรือ SSMS ด้วย connection string ชุดเดียวกัน แล้วรีสตาร์ท App Pool
 
 #### ขั้นตอนทั่วไป
 

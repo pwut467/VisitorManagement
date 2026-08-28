@@ -2,12 +2,18 @@ using System.Data.Common;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using VisitorManagement.Web.Services;
 
 namespace VisitorManagement.Web.Data;
 
 public static class DatabaseBootstrap
 {
-    public static async Task EnsureMigratedAsync(AppDbContext db, IConfiguration config, ILogger logger, CancellationToken cancellationToken = default)
+    public static async Task EnsureMigratedAsync(
+        AppDbContext db,
+        IConfiguration config,
+        ILogger logger,
+        SqlConnectionResolver? connectionResolver = null,
+        CancellationToken cancellationToken = default)
     {
         if (!db.Database.IsSqlServer())
         {
@@ -15,47 +21,172 @@ public static class DatabaseBootstrap
             return;
         }
 
-        var connectionString = config.GetConnectionString("SqlServer")
-            ?? @"Server=.\SQLEXPRESS;Database=VisitorManagment;Trusted_Connection=True;TrustServerCertificate=True;MultipleActiveResultSets=True";
+        var configured = connectionResolver?.ConnectionString
+            ?? config.GetConnectionString("SqlServer")
+            ?? SqlConnectionResolver.DefaultSqlServer;
 
-        var summary = SummarizeConnection(connectionString);
+        var summary = SummarizeConnection(configured);
         logger.LogInformation("Local SQL Server target: {Summary}", summary);
 
         try
         {
-            await ProbeServerAsync(connectionString, cancellationToken);
+            var working = await ResolveWorkingConnectionStringAsync(configured, logger, cancellationToken);
+            if (!string.Equals(working, configured, StringComparison.OrdinalIgnoreCase))
+            {
+                logger.LogWarning(
+                    "Named-pipe / default endpoint failed; using alternate SQL connection: {Summary}",
+                    SummarizeConnection(working));
+            }
+
+            connectionResolver?.Use(working);
+            db.Database.SetConnectionString(working);
             await db.Database.MigrateAsync(cancellationToken);
         }
         catch (Exception ex) when (ex is SqlException or DbException or InvalidOperationException)
         {
-            throw new InvalidOperationException(BuildHelpMessage(summary, ex), ex);
+            throw new InvalidOperationException(BuildHelpMessage(SummarizeConnection(configured), ex), ex);
         }
+    }
+
+    public static async Task<string> ResolveWorkingConnectionStringAsync(
+        string connectionString,
+        ILogger? logger = null,
+        CancellationToken cancellationToken = default)
+    {
+        Exception? last = null;
+        foreach (var candidate in BuildConnectionCandidates(connectionString))
+        {
+            try
+            {
+                await ProbeServerAsync(candidate, cancellationToken);
+                return candidate;
+            }
+            catch (Exception ex) when (ex is SqlException or DbException or InvalidOperationException)
+            {
+                last = ex;
+                logger?.LogDebug(ex, "SQL probe failed for {Summary}", SummarizeConnection(candidate));
+            }
+        }
+
+        throw last ?? new InvalidOperationException("ไม่สามารถเชื่อมต่อ SQL Server ได้");
+    }
+
+    public static IReadOnlyList<string> BuildConnectionCandidates(string connectionString)
+    {
+        var list = new List<string>();
+        void Add(string? value)
+        {
+            if (string.IsNullOrWhiteSpace(value))
+            {
+                return;
+            }
+
+            if (!list.Exists(existing => string.Equals(existing, value, StringComparison.OrdinalIgnoreCase)))
+            {
+                list.Add(value);
+            }
+        }
+
+        Add(connectionString);
+
+        try
+        {
+            var builder = new SqlConnectionStringBuilder(connectionString);
+            var dataSource = (builder.DataSource ?? string.Empty).Trim();
+            if (dataSource.Length == 0 || dataSource.Contains("localdb", StringComparison.OrdinalIgnoreCase))
+            {
+                return list;
+            }
+
+            var withoutProtocol = dataSource;
+            foreach (var prefix in new[] { "tcp:", "np:", "lpc:" })
+            {
+                if (withoutProtocol.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
+                {
+                    withoutProtocol = withoutProtocol[prefix.Length..];
+                    break;
+                }
+            }
+
+            Add(WithDataSource(builder, "tcp:" + withoutProtocol));
+
+            if (withoutProtocol.StartsWith(".\\", StringComparison.Ordinal) || withoutProtocol.StartsWith("./", StringComparison.Ordinal))
+            {
+                var instance = withoutProtocol[2..];
+                Add(WithDataSource(builder, $@"tcp:127.0.0.1\{instance}"));
+                Add(WithDataSource(builder, $@"tcp:localhost\{instance}"));
+                Add(WithDataSource(builder, $@"localhost\{instance}"));
+                Add(WithDataSource(builder, $@"127.0.0.1\{instance}"));
+            }
+            else if (withoutProtocol.Equals(".", StringComparison.Ordinal) || withoutProtocol.Equals("localhost", StringComparison.OrdinalIgnoreCase))
+            {
+                Add(WithDataSource(builder, "tcp:127.0.0.1"));
+                Add(WithDataSource(builder, "tcp:localhost"));
+            }
+            else if (withoutProtocol.Contains('\\'))
+            {
+                Add(WithDataSource(builder, "tcp:" + withoutProtocol));
+            }
+        }
+        catch
+        {
+            // Keep the original candidate only.
+        }
+
+        return list;
+    }
+
+    private static string WithDataSource(SqlConnectionStringBuilder template, string dataSource)
+    {
+        var copy = new SqlConnectionStringBuilder(template.ConnectionString)
+        {
+            DataSource = dataSource,
+            TrustServerCertificate = true
+        };
+        return copy.ConnectionString;
     }
 
     private static async Task ProbeServerAsync(string connectionString, CancellationToken cancellationToken)
     {
-        var builder = new SqlConnectionStringBuilder(connectionString)
-        {
-            InitialCatalog = "master",
-            ConnectTimeout = Math.Clamp(builderSafeTimeout(connectionString), 3, 15)
-        };
+        var original = new SqlConnectionStringBuilder(connectionString);
+        var catalog = string.IsNullOrWhiteSpace(original.InitialCatalog) ? "VisitorManagment" : original.InitialCatalog;
+        var timeout = Math.Clamp(original.ConnectTimeout <= 0 ? 5 : original.ConnectTimeout, 3, 15);
 
-        await using var connection = new SqlConnection(builder.ConnectionString);
-        await connection.OpenAsync(cancellationToken);
-        await using var command = connection.CreateCommand();
-        command.CommandText = "SELECT 1";
-        await command.ExecuteScalarAsync(cancellationToken);
-    }
-
-    private static int builderSafeTimeout(string connectionString)
-    {
-        try
+        // Prefer the real DB (user may have created VisitorManagment already), then master.
+        foreach (var initialCatalog in new[] { catalog, "master" }.Distinct(StringComparer.OrdinalIgnoreCase))
         {
-            return new SqlConnectionStringBuilder(connectionString).ConnectTimeout;
+            var builder = new SqlConnectionStringBuilder(connectionString)
+            {
+                InitialCatalog = initialCatalog,
+                ConnectTimeout = timeout,
+                TrustServerCertificate = true
+            };
+
+            try
+            {
+                await using var connection = new SqlConnection(builder.ConnectionString);
+                await connection.OpenAsync(cancellationToken);
+                await using var command = connection.CreateCommand();
+                command.CommandText = "SELECT 1";
+                await command.ExecuteScalarAsync(cancellationToken);
+                return;
+            }
+            catch (SqlException) when (!string.Equals(initialCatalog, "master", StringComparison.OrdinalIgnoreCase))
+            {
+                // Try master next (DB name typo / not created yet).
+            }
         }
-        catch
+
+        // Final attempt so the caller receives the real error.
         {
-            return 5;
+            var builder = new SqlConnectionStringBuilder(connectionString)
+            {
+                InitialCatalog = "master",
+                ConnectTimeout = timeout,
+                TrustServerCertificate = true
+            };
+            await using var connection = new SqlConnection(builder.ConnectionString);
+            await connection.OpenAsync(cancellationToken);
         }
     }
 
@@ -85,19 +216,16 @@ public static class DatabaseBootstrap
             $"เป้าหมาย: {summary}\n" +
             $"สาเหตุ: {root}\n\n" +
             (specific is null ? string.Empty : specific + "\n\n") +
-            "ตรวจบนเครื่องที่รันเว็บ:\n" +
-            "1) ติดตั้งและเปิดบริการ SQL Server Express (หรือ LocalDB / SQL Server)\n" +
-            "2) วางไฟล์ appsettings.Local.json ในโฟลเดอร์เดียวกับ VisitorManagement.Web.dll แล้วแก้ ConnectionStrings:SqlServer เช่น\n" +
-            "   - Server=.\\SQLEXPRESS;Database=VisitorManagment;Trusted_Connection=True;TrustServerCertificate=True;MultipleActiveResultSets=True\n" +
-            "   - Server=localhost\\SQLEXPRESS;Database=VisitorManagment;Trusted_Connection=True;TrustServerCertificate=True;MultipleActiveResultSets=True\n" +
-            "   - Server=(localdb)\\MSSQLLocalDB;Database=VisitorManagment;Trusted_Connection=True;TrustServerCertificate=True;MultipleActiveResultSets=True\n" +
-            "   - Server=localhost;Database=VisitorManagment;Trusted_Connection=True;TrustServerCertificate=True;MultipleActiveResultSets=True\n" +
-            "3) ถ้า host ด้วย IIS: App Pool มักใช้ ApplicationPoolIdentity — Trusted_Connection มักใช้ไม่ได้\n" +
-            "   ใช้ SQL Auth แทน เช่น Server=.\\SQLEXPRESS;Database=VisitorManagment;User Id=sa;Password=...;TrustServerCertificate=True;MultipleActiveResultSets=True\n" +
-            "   หรือสร้าง Login ให้ IIS APPPOOL\\ชื่อAppPool แล้วให้สิทธิ์ dbcreator / db_owner\n" +
-            "4) สร้าง DB ชื่อ VisitorManagment ใน SSMS ไว้ก่อนก็ได้\n" +
-            "5) Docker: docker compose up -d แล้วใช้ Server=localhost,1433;User Id=sa;Password=Your_password123;...\n" +
-            "6) ดู logs\\startup-error.txt และ logs\\stdout_*.log ในโฟลเดอร์ publish\n" +
+            "ถ้าติดตั้ง SQL Express และสร้างฐาน VisitorManagment ไว้แล้ว ให้ตรวจว่า:\n" +
+            "1) บริการ SQL Server (SQLEXPRESS) สถานะ Running (services.msc)\n" +
+            "2) ใน SQL Server Configuration Manager → Protocols for SQLEXPRESS เปิด TCP/IP และ Named Pipes แล้ว Restart บริการ\n" +
+            "3) วาง appsettings.Local.json ข้าง VisitorManagement.Web.dll ใช้ TCP ชัดเจน เช่น\n" +
+            "   Server=localhost\\SQLEXPRESS;Database=VisitorManagment;Trusted_Connection=True;TrustServerCertificate=True;MultipleActiveResultSets=True\n" +
+            "4) ชื่อฐานต้องสะกดตรงนี้: VisitorManagment (ไม่มี e หลัง Manag)\n" +
+            "5) ถ้า host ด้วย IIS: อย่าใช้ Trusted_Connection — ใช้ SQL Auth เช่น\n" +
+            "   Server=localhost\\SQLEXPRESS;Database=VisitorManagment;User Id=sa;Password=...;TrustServerCertificate=True;MultipleActiveResultSets=True\n" +
+            "   หรือสร้าง Login IIS APPPOOL\\ชื่อพูล ให้เป็น db_owner ของ VisitorManagment\n" +
+            "6) ทดสอบใน SSMS ด้วย connection string ชุดเดียวกับแอป ก่อนรีสตาร์ทเว็บ\n" +
             "ตัวอย่างไฟล์: appsettings.Local.json.example → appsettings.Local.json";
     }
 
@@ -118,15 +246,15 @@ public static class DatabaseBootstrap
             || rootMessage.Contains("could not open a connection", StringComparison.OrdinalIgnoreCase))
         {
             return
-                "แปลว่าเครื่องนี้เชื่อม instance SQL ไม่ได้ (มักเพราะยังไม่ได้ติดตั้ง / บริการหยุด / ชื่อ instance ผิด)\n" +
+                "แม้ติดตั้ง SQL Express แล้ว ก็ยังเจอข้อความนี้ได้เมื่อ Named Pipes (`Server=.\\SQLEXPRESS`) ใช้ไม่ได้ หรือบริการหยุดชั่วคราว\n" +
                 "ทำทันทีบน Windows:\n" +
-                "A) เปิด services.msc → หา \"SQL Server (SQLEXPRESS)\" → Start (และตั้ง Automatic)\n" +
-                "B) ถ้าไม่มีบริการนี้ = ยังไม่มี SQL Express → ติดตั้ง SQL Server Express หรือใช้ LocalDB\n" +
-                "C) ทางลัดที่ง่าย: ติดตั้ง LocalDB แล้วใส่ใน appsettings.Local.json:\n" +
-                "   Server=(localdb)\\MSSQLLocalDB;Database=VisitorManagment;Trusted_Connection=True;TrustServerCertificate=True;MultipleActiveResultSets=True\n" +
-                "D) หรือรัน Docker: docker compose up -d แล้วใช้\n" +
-                "   Server=localhost,1433;Database=VisitorManagment;User Id=sa;Password=Your_password123;TrustServerCertificate=True;MultipleActiveResultSets=True\n" +
-                "E) ใน SQL Server Configuration Manager เปิด Named Pipes + TCP/IP ของ SQLEXPRESS แล้วรีสตาร์ทบริการ";
+                "A) services.msc → SQL Server (SQLEXPRESS) → Start / Restart\n" +
+                "B) SQL Server Configuration Manager → SQL Server Network Configuration → Protocols for SQLEXPRESS\n" +
+                "   เปิด TCP/IP + Named Pipes → Restart บริการ SQLEXPRESS\n" +
+                "C) ใส่ใน appsettings.Local.json (บังคับใช้ TCP/hostname):\n" +
+                "   Server=localhost\\SQLEXPRESS;Database=VisitorManagment;Trusted_Connection=True;TrustServerCertificate=True;MultipleActiveResultSets=True\n" +
+                "D) ถ้าเป็น IIS ให้ใช้ SQL Auth (User Id/Password) แทน Trusted_Connection\n" +
+                "E) ตรวจชื่อฐานให้ตรง: VisitorManagment";
         }
 
         if (rootMessage.Contains("Login failed", StringComparison.OrdinalIgnoreCase))
@@ -138,4 +266,3 @@ public static class DatabaseBootstrap
         return null;
     }
 }
-

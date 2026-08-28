@@ -25,7 +25,8 @@ public static class DbSeeder
             }
 
             var logger = scope.ServiceProvider.GetRequiredService<ILoggerFactory>().CreateLogger("DatabaseBootstrap");
-            await DatabaseBootstrap.EnsureMigratedAsync(db, config, logger);
+            var connectionResolver = scope.ServiceProvider.GetService<SqlConnectionResolver>();
+            await DatabaseBootstrap.EnsureMigratedAsync(db, config, logger, connectionResolver);
         }
         else
         {

@@ -17,8 +17,9 @@ var provider = builder.Environment.IsEnvironment("Testing")
     : builder.Configuration["Database:Provider"] ?? "SqlServer";
 
 builder.Services.AddSingleton<AppStartupState>();
+builder.Services.AddSingleton<SqlConnectionResolver>();
 
-builder.Services.AddDbContext<AppDbContext>(options =>
+builder.Services.AddDbContext<AppDbContext>((sp, options) =>
 {
     switch (provider)
     {
@@ -26,8 +27,7 @@ builder.Services.AddDbContext<AppDbContext>(options =>
             options.UseInMemoryDatabase("VisitorManagement");
             break;
         default:
-            options.UseSqlServer(builder.Configuration.GetConnectionString("SqlServer")
-                ?? @"Server=.\SQLEXPRESS;Database=VisitorManagment;Trusted_Connection=True;TrustServerCertificate=True;MultipleActiveResultSets=True");
+            options.UseSqlServer(sp.GetRequiredService<SqlConnectionResolver>().ConnectionString);
             break;
     }
 });
