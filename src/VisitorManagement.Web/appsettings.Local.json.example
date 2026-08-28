@@ -1,5 +1,5 @@
 {
   "ConnectionStrings": {
-    "SqlServer": "Server=.\\SQLEXPRESS;Database=VisitorManagment;Trusted_Connection=True;TrustServerCertificate=True;MultipleActiveResultSets=True"
+    "SqlServer": "Server=(localdb)\\MSSQLLocalDB;Database=VisitorManagment;Trusted_Connection=True;TrustServerCertificate=True;MultipleActiveResultSets=True"
   }
 }

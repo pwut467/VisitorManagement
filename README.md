@@ -127,6 +127,27 @@ dotnet run
 
 เวอร์ชันล่าสุดจะ**ไม่ crash** แต่พาไปหน้า `/Home/Database` อธิบายวิธีแก้ และเขียนไฟล์ `logs/startup-error.txt`
 
+#### สาเหตุ: `No process is on the other end of the pipe`
+
+แปลว่าเครื่องนี้**ไม่มี `SQL Server (SQLEXPRESS)` ที่กำลังรัน** (หรือชื่อ instance ไม่ตรง)
+
+1. `Win+R` → `services.msc` → หา **SQL Server (SQLEXPRESS)** → Start (ตั้ง Automatic)
+2. ถ้าไม่มีบริการนี้ → ติดตั้ง SQL Server Express **หรือ** ใช้ LocalDB / Docker ตามด้านล่าง
+3. ทางลัด: สร้าง `appsettings.Local.json` ข้าง `VisitorManagement.Web.dll`:
+
+```json
+{
+  "ConnectionStrings": {
+    "SqlServer": "Server=(localdb)\\MSSQLLocalDB;Database=VisitorManagment;Trusted_Connection=True;TrustServerCertificate=True;MultipleActiveResultSets=True"
+  }
+}
+```
+
+4. หรือ Docker: `docker compose up -d` แล้วใช้ `Server=localhost,1433;User Id=sa;Password=Your_password123;...`
+5. รีสตาร์ท Application Pool / เว็บไซต์
+
+#### ขั้นตอนทั่วไป
+
 1. ตรวจว่า SQL Server / Express / LocalDB ติดตั้งและบริการทำงาน
 2. คัดลอกไฟล์ตั้งค่าเฉพาะเครื่อง (วางข้าง `VisitorManagement.Web.dll` หลัง publish):
 
