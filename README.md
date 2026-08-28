@@ -75,7 +75,7 @@ QR บนบัตรมี payload `VISIT|{VisitCode}` เพื่อให้
 ค่าเริ่มต้นชี้ไปที่ instance **SQLEXPRESS** ชื่อฐาน **VisitorManagment**
 
 ```
-Server=.\SQLEXPRESS;Database=VisitorManagment;Trusted_Connection=True;TrustServerCertificate=True;MultipleActiveResultSets=True
+Server=localhost\SQLEXPRESS;Database=VisitorManagment;Trusted_Connection=True;TrustServerCertificate=True;MultipleActiveResultSets=True
 ```
 
 รอบแรกที่เปิดแอป ระบบจะ:
@@ -93,7 +93,7 @@ dotnet ef database update --project src/VisitorManagement.Web
 ถ้าใช้ SQL Authentication แทน Windows Auth ให้เปลี่ยน connection string เป็น:
 
 ```
-Server=.\SQLEXPRESS;Database=VisitorManagment;User Id=sa;Password=รหัสผ่านของคุณ;TrustServerCertificate=True;MultipleActiveResultSets=True
+Server=localhost\SQLEXPRESS;Database=VisitorManagment;User Id=sa;Password=รหัสผ่านของคุณ;TrustServerCertificate=True;MultipleActiveResultSets=True
 ```
 
 สคริปต์ SQL สำรองอยู่ที่ `src/VisitorManagement.Web/Data/Migrations/VisitorManagment.sql` (เปิดใน SSMS แล้วรันบน SQLEXPRESS ได้)
