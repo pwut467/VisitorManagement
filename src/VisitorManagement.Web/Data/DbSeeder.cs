@@ -7,7 +7,7 @@ namespace VisitorManagement.Web.Data;
 
 public static class DbSeeder
 {
-    private static readonly string[] OfficialUserNames = ["SKAdmin", "9641"];
+    private const string SecurityUserName = "9641";
 
     public static async Task SeedAsync(IServiceProvider services)
     {
@@ -191,7 +191,12 @@ public static class DbSeeder
     private static async Task ResetUsersAsync(AppDbContext db, UserManager<ApplicationUser> userManager)
     {
         const string defaultPassword = "123456";
-        var keepNames = new HashSet<string>(OfficialUserNames, StringComparer.OrdinalIgnoreCase);
+        var adminUserName = await ResolveAdminUserNameAsync(db);
+        var keepNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        {
+            adminUserName,
+            SecurityUserName
+        };
         var leftover = (await userManager.Users.ToListAsync())
             .Where(user => user.UserName is null || !keepNames.Contains(user.UserName))
             .ToList();
@@ -234,8 +239,28 @@ public static class DbSeeder
             }
         }
 
-        await EnsureUserAsync(userManager, "SKAdmin", defaultPassword, "ผู้ดูแลระบบ", AppRoles.Admin);
-        await EnsureUserAsync(userManager, "9641", defaultPassword, "รปภ.", AppRoles.Security);
+        await EnsureUserAsync(userManager, adminUserName, defaultPassword, "ผู้ดูแลระบบ", AppRoles.Admin);
+        await EnsureUserAsync(userManager, SecurityUserName, defaultPassword, "รปภ.", AppRoles.Security);
+    }
+
+    public static async Task<string> ResolveAdminUserNameAsync(AppDbContext db)
+    {
+        var code = await db.CompanyProfiles.AsNoTracking()
+            .Where(c => c.IsActive)
+            .OrderBy(c => c.Id)
+            .Select(c => c.CompanyCode)
+            .FirstOrDefaultAsync();
+
+        if (string.IsNullOrWhiteSpace(code))
+        {
+            code = await db.CompanyProfiles.AsNoTracking()
+                .OrderBy(c => c.Id)
+                .Select(c => c.CompanyCode)
+                .FirstOrDefaultAsync();
+        }
+
+        code = (code ?? string.Empty).Trim();
+        return code.Length > 0 ? code : "SKNY";
     }
 
     private static async Task ClearVisitorRecordsOnceAsync(AppDbContext db)

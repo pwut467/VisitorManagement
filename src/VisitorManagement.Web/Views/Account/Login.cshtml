@@ -22,5 +22,8 @@
         <label asp-for="RememberMe" class="form-check-label"></label>
     </div>
     <button class="btn btn-teal w-100">เข้าสู่ระบบ</button>
-    <p class="small text-muted mt-3 mb-0">ตัวอย่าง: SKAdmin / 123456</p>
+    @if (ViewBag.LoginExampleUser is string exampleUser && !string.IsNullOrWhiteSpace(exampleUser))
+    {
+        <p class="small text-muted mt-3 mb-0">ตัวอย่าง: @exampleUser / 123456</p>
+    }
 </form>

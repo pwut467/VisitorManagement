@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using VisitorManagement.Web.Data;
 using VisitorManagement.Web.Models;
 using VisitorManagement.Web.ViewModels;
 
@@ -10,16 +12,21 @@ public class AccountController : Controller
 {
     private readonly SignInManager<ApplicationUser> _signInManager;
     private readonly UserManager<ApplicationUser> _userManager;
+    private readonly AppDbContext _db;
 
-    public AccountController(SignInManager<ApplicationUser> signInManager, UserManager<ApplicationUser> userManager)
+    public AccountController(
+        SignInManager<ApplicationUser> signInManager,
+        UserManager<ApplicationUser> userManager,
+        AppDbContext db)
     {
         _signInManager = signInManager;
         _userManager = userManager;
+        _db = db;
     }
 
     [HttpGet]
     [AllowAnonymous]
-    public IActionResult Login(string? returnUrl = null)
+    public async Task<IActionResult> Login(string? returnUrl = null)
     {
         if (User.Identity?.IsAuthenticated == true)
         {
@@ -27,6 +34,7 @@ public class AccountController : Controller
         }
 
         ViewData["ReturnUrl"] = returnUrl;
+        await SetLoginExampleAsync();
         return View(new LoginViewModel());
     }
 
@@ -36,6 +44,7 @@ public class AccountController : Controller
     public async Task<IActionResult> Login(LoginViewModel model, string? returnUrl = null)
     {
         ViewData["ReturnUrl"] = returnUrl;
+        await SetLoginExampleAsync();
         if (!ModelState.IsValid)
         {
             return View(model);
@@ -76,4 +85,30 @@ public class AccountController : Controller
     [HttpGet]
     [AllowAnonymous]
     public IActionResult AccessDenied() => View();
+
+    private async Task SetLoginExampleAsync()
+    {
+        try
+        {
+            var code = await _db.CompanyProfiles.AsNoTracking()
+                .Where(c => c.IsActive)
+                .OrderBy(c => c.Id)
+                .Select(c => c.CompanyCode)
+                .FirstOrDefaultAsync();
+
+            if (string.IsNullOrWhiteSpace(code))
+            {
+                code = await _db.CompanyProfiles.AsNoTracking()
+                    .OrderBy(c => c.Id)
+                    .Select(c => c.CompanyCode)
+                    .FirstOrDefaultAsync();
+            }
+
+            ViewBag.LoginExampleUser = string.IsNullOrWhiteSpace(code) ? null : code.Trim();
+        }
+        catch
+        {
+            ViewBag.LoginExampleUser = null;
+        }
+    }
 }
