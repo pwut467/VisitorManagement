@@ -1,0 +1,38 @@
+@model string
+@{
+    Layout = null;
+    ViewData["Title"] = "ฐานข้อมูลยังไม่พร้อม";
+}
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - SK Visitor</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+</head>
+<body class="login-hero d-flex align-items-center py-4">
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-lg-8">
+                <div class="card vm-card p-4">
+                    <div class="mb-3">
+                        <div class="brand-mark mb-2">SK</div>
+                        <h1 class="h4 mb-1 text-danger">แอปสตาร์ทได้ แต่ฐานข้อมูลยังไม่พร้อม</h1>
+                        <p class="text-muted mb-0">เดิม IIS จะขึ้น HTTP Error 500.30 เพราะแอป crash ตอนสร้าง/เชื่อม DB — ตอนนี้แสดงหน้านีแทน</p>
+                    </div>
+                    <pre class="bg-light border rounded p-3 small" style="white-space:pre-wrap;word-break:break-word">@Model</pre>
+                    <div class="mt-3 small text-muted">
+                        <p class="mb-1">หลังแก้ connection string หรือสิทธิ์ SQL แล้ว <strong>รีสตาร์ท Application Pool / เว็บไซต์</strong></p>
+                        <p class="mb-0">ดู log เพิ่ม: โฟลเดอร์ <code>logs\stdout_*.log</code> ในโฟลเดอร์ publish (ถ้าเปิด stdout ใน web.config)</p>
+                    </div>
+                    <a class="btn btn-teal mt-3" href="/Home/Database">ลองโหลดหน้านี้อีกครั้ง</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

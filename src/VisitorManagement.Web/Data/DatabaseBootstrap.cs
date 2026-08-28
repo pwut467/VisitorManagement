@@ -84,12 +84,17 @@ public static class DatabaseBootstrap
             $"สาเหตุ: {root}\n\n" +
             "ตรวจบนเครื่องที่รันเว็บ:\n" +
             "1) ติดตั้งและเปิดบริการ SQL Server Express (หรือ LocalDB / SQL Server)\n" +
-            "2) แก้ ConnectionStrings:SqlServer ใน appsettings.Local.json ให้ตรง instance จริง เช่น\n" +
+            "2) วางไฟล์ appsettings.Local.json ในโฟลเดอร์เดียวกับ VisitorManagement.Web.dll แล้วแก้ ConnectionStrings:SqlServer เช่น\n" +
             "   - Server=.\\SQLEXPRESS;Database=VisitorManagment;Trusted_Connection=True;TrustServerCertificate=True;MultipleActiveResultSets=True\n" +
             "   - Server=(localdb)\\MSSQLLocalDB;Database=VisitorManagment;Trusted_Connection=True;TrustServerCertificate=True;MultipleActiveResultSets=True\n" +
             "   - Server=localhost;Database=VisitorManagment;Trusted_Connection=True;TrustServerCertificate=True;MultipleActiveResultSets=True\n" +
-            "3) บัญชี Windows ที่รันแอปต้องมีสิทธิ์สร้างฐานข้อมูล (dbcreator) หรือสร้าง DB ชื่อ VisitorManagment ไว้ก่อน\n" +
-            "4) หรือใช้ Docker: docker compose up -d แล้วตั้ง Server=localhost,1433;User Id=sa;Password=Your_password123;...\n" +
-            "คัดลอกไฟล์ตัวอย่าง: src/VisitorManagement.Web/appsettings.Local.json.example → appsettings.Local.json";
+            "3) ถ้า host ด้วย IIS: App Pool มักใช้ ApplicationPoolIdentity — Trusted_Connection มักใช้ไม่ได้\n" +
+            "   ใช้ SQL Auth แทน เช่น Server=.\\SQLEXPRESS;Database=VisitorManagment;User Id=sa;Password=...;TrustServerCertificate=True;MultipleActiveResultSets=True\n" +
+            "   หรือสร้าง Login ให้ IIS APPPOOL\\ชื่อAppPool แล้วให้สิทธิ์ dbcreator / db_owner\n" +
+            "4) สร้าง DB ชื่อ VisitorManagment ใน SSMS ไว้ก่อนก็ได้\n" +
+            "5) Docker: docker compose up -d แล้วใช้ Server=localhost,1433;User Id=sa;Password=Your_password123;...\n" +
+            "6) ดู logs\\startup-error.txt และ logs\\stdout_*.log ในโฟลเดอร์ publish\n" +
+            "ตัวอย่างไฟล์: appsettings.Local.json.example → appsettings.Local.json";
     }
 }
+

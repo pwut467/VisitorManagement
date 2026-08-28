@@ -121,12 +121,14 @@ dotnet run
 
 ต้องมี SQL Server Express รันอยู่ และบัญชี Windows (หรือ sa) มีสิทธิ์สร้างฐานข้อมูล
 
-### รันบนเครื่องอื่นแล้วสร้าง DB ไม่สำเร็จ
+### รันบนเครื่องอื่นแล้วสร้าง DB ไม่สำเร็จ / HTTP 500.30
 
-ถ้า log มี `Failed executing DbCommand ... CREATE DATABASE [VisitorManagment]` แปลว่าเครื่องนั้นเชื่อม `.\SQLEXPRESS` ไม่ได้ หรือไม่มีสิทธิ์สร้างฐาน
+`HTTP Error 500.30 - ASP.NET Core app failed to start` เกิดเมื่อแอป crash ตอนสตาร์ท — สาเหตุที่พบบ่อยคือเชื่อม SQL ไม่ได้ (`CREATE DATABASE [VisitorManagment]` ล้มเหลว)
+
+เวอร์ชันล่าสุดจะ**ไม่ crash** แต่พาไปหน้า `/Home/Database` อธิบายวิธีแก้ และเขียนไฟล์ `logs/startup-error.txt`
 
 1. ตรวจว่า SQL Server / Express / LocalDB ติดตั้งและบริการทำงาน
-2. คัดลอกไฟล์ตั้งค่าเฉพาะเครื่อง:
+2. คัดลอกไฟล์ตั้งค่าเฉพาะเครื่อง (วางข้าง `VisitorManagement.Web.dll` หลัง publish):
 
 ```bash
 cp src/VisitorManagement.Web/appsettings.Local.json.example src/VisitorManagement.Web/appsettings.Local.json
@@ -141,13 +143,15 @@ Server=localhost;Database=VisitorManagment;Trusted_Connection=True;TrustServerCe
 Server=localhost,1433;Database=VisitorManagment;User Id=sa;Password=Your_password123;TrustServerCertificate=True;MultipleActiveResultSets=True
 ```
 
-3. หรือสร้างฐาน `VisitorManagment` ใน SSMS ก่อน แล้วให้บัญชีที่รันแอปเป็น `db_owner`
-4. Docker: `docker compose up -d` แล้วใช้ connection string พอร์ต `1433` ตามด้านบน
+3. **IIS:** App Pool มักไม่ใช้บัญชี Windows ของคุณ — `Trusted_Connection` มักล้มเหลว ให้ใช้ **SQL Auth** (`User Id` / `Password`) หรือให้สิทธิ์ `IIS APPPOOL\ชื่อพูล` บน SQL
+4. สร้างฐาน `VisitorManagment` ใน SSMS ก่อน แล้วให้บัญชีที่รันแอปเป็น `db_owner`
+5. Docker: `docker compose up -d` แล้วใช้ connection string พอร์ต `1433`
+6. เปิด `logs\stdout_*.log` (web.config เปิด stdout ไว้แล้ว) หรือ Event Viewer → Windows Logs → Application
 
-หรือตั้งผ่าน environment variable:
+หรือตั้งผ่าน environment variable / IIS Configuration Editor:
 
 ```
-ConnectionStrings__SqlServer=Server=.\SQLEXPRESS;Database=VisitorManagment;Trusted_Connection=True;TrustServerCertificate=True;MultipleActiveResultSets=True
+ConnectionStrings__SqlServer=Server=.\SQLEXPRESS;Database=VisitorManagment;User Id=sa;Password=...;TrustServerCertificate=True;MultipleActiveResultSets=True
 ```
 
 ### บัญชีเริ่มต้น
