@@ -1,5 +1,4 @@
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
@@ -18,22 +17,19 @@ public class SettingsController : Controller
     private readonly ICloudConnectionStatus _cloudStatus;
     private readonly ICloudOptionsProvider _cloudOptions;
     private readonly ICompanyContext _companyContext;
-    private readonly UserManager<ApplicationUser> _userManager;
 
     public SettingsController(
         AppDbContext db,
         ICloudVisitSyncService cloudSync,
         ICloudConnectionStatus cloudStatus,
         ICloudOptionsProvider cloudOptions,
-        ICompanyContext companyContext,
-        UserManager<ApplicationUser> userManager)
+        ICompanyContext companyContext)
     {
         _db = db;
         _cloudSync = cloudSync;
         _cloudStatus = cloudStatus;
         _cloudOptions = cloudOptions;
         _companyContext = companyContext;
-        _userManager = userManager;
     }
 
     public async Task<IActionResult> Index()
@@ -97,7 +93,6 @@ public class SettingsController : Controller
         }
 
         await _db.SaveChangesAsync();
-        await SyncAdminUserNameAsync(previousCode, code);
         await _companyContext.SetActiveAsync(c.Id);
         await _cloudSync.ProbeAsync();
         var synced = await _cloudSync.SyncPendingAsync();
@@ -270,31 +265,5 @@ public class SettingsController : Controller
               ?? (!snap.Configured
                   ? "กรอก Username/Password (SQL Auth) ของเซิร์ฟเวอร์ 192.168.11.204 แล้วกดทดสอบ"
                   : null);
-    }
-
-    private async Task SyncAdminUserNameAsync(string previousCode, string newCode)
-    {
-        if (string.Equals(previousCode, newCode, StringComparison.OrdinalIgnoreCase))
-        {
-            return;
-        }
-
-        var existingNew = await _userManager.FindByNameAsync(newCode);
-        var previous = await _userManager.FindByNameAsync(previousCode);
-        if (previous is null)
-        {
-            return;
-        }
-
-        if (existingNew is not null && existingNew.Id != previous.Id)
-        {
-            return;
-        }
-
-        var rename = await _userManager.SetUserNameAsync(previous, newCode);
-        if (!rename.Succeeded)
-        {
-            throw new InvalidOperationException(string.Join("; ", rename.Errors.Select(e => e.Description)));
-        }
     }
 }

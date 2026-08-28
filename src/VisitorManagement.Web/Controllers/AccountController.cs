@@ -34,7 +34,7 @@ public class AccountController : Controller
         }
 
         ViewData["ReturnUrl"] = returnUrl;
-        await SetLoginExampleAsync();
+        await SetCompanyCodeHintAsync();
         return View(new LoginViewModel());
     }
 
@@ -44,7 +44,7 @@ public class AccountController : Controller
     public async Task<IActionResult> Login(LoginViewModel model, string? returnUrl = null)
     {
         ViewData["ReturnUrl"] = returnUrl;
-        await SetLoginExampleAsync();
+        await SetCompanyCodeHintAsync();
         if (!ModelState.IsValid)
         {
             return View(model);
@@ -86,7 +86,7 @@ public class AccountController : Controller
     [AllowAnonymous]
     public IActionResult AccessDenied() => View();
 
-    private async Task SetLoginExampleAsync()
+    private async Task SetCompanyCodeHintAsync()
     {
         try
         {
@@ -104,11 +104,11 @@ public class AccountController : Controller
                     .FirstOrDefaultAsync();
             }
 
-            ViewBag.LoginExampleUser = string.IsNullOrWhiteSpace(code) ? null : code.Trim();
+            ViewBag.CompanyCode = string.IsNullOrWhiteSpace(code) ? null : code.Trim();
         }
         catch
         {
-            ViewBag.LoginExampleUser = null;
+            ViewBag.CompanyCode = null;
         }
     }
 }

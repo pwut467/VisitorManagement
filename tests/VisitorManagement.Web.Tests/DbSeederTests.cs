@@ -21,7 +21,7 @@ public class DbSeederTests
         Assert.Equal(5, await db.Employees.CountAsync());
         Assert.Equal(2, await users.Users.CountAsync());
 
-        var admin = await users.FindByNameAsync("SKNY");
+        var admin = await users.FindByNameAsync("SKAdmin");
         var security = await users.FindByNameAsync("9641");
         Assert.NotNull(admin);
         Assert.NotNull(security);
@@ -29,7 +29,6 @@ public class DbSeederTests
         Assert.True(await users.CheckPasswordAsync(security, "123456"));
         Assert.True(await users.IsInRoleAsync(admin, AppRoles.Admin));
         Assert.True(await users.IsInRoleAsync(security, AppRoles.Security));
-        Assert.Null(await users.FindByNameAsync("SKAdmin"));
         Assert.Null(await users.FindByNameAsync("admin@company.local"));
         Assert.True(await db.Employees.AllAsync(e => e.UserId == null));
         Assert.Equal(0, await db.Visits.CountAsync());
@@ -48,7 +47,7 @@ public class DbSeederTests
         using (var scope = provider.CreateScope())
         {
             var users = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
-            var admin = await users.FindByNameAsync("SKNY");
+            var admin = await users.FindByNameAsync("SKAdmin");
             var security = await users.FindByNameAsync("9641");
             Assert.NotNull(admin);
             Assert.NotNull(security);
@@ -62,7 +61,7 @@ public class DbSeederTests
         using (var scope = provider.CreateScope())
         {
             var users = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
-            var admin = await users.FindByNameAsync("SKNY");
+            var admin = await users.FindByNameAsync("SKAdmin");
             var security = await users.FindByNameAsync("9641");
             Assert.NotNull(admin);
             Assert.NotNull(security);
@@ -101,8 +100,7 @@ public class DbSeederTests
         {
             var users = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
             Assert.Null(await users.FindByNameAsync("admin@company.local"));
-            Assert.Null(await users.FindByNameAsync("SKAdmin"));
-            Assert.NotNull(await users.FindByNameAsync("SKNY"));
+            Assert.NotNull(await users.FindByNameAsync("SKAdmin"));
             Assert.NotNull(await users.FindByNameAsync("9641"));
             Assert.Equal(2, await users.Users.CountAsync());
         }
