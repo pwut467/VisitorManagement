@@ -182,7 +182,7 @@ ConnectionStrings__SqlServer=Server=.\SQLEXPRESS;Database=VisitorManagment;User 
 | ชื่อผู้ใช้ | รหัสผ่าน | สิทธิ์ |
 |---|---|---|
 | `SKAdmin` | `123456` | Admin |
-| `9641` | `123456` | Security |
+| `9641` | `123456` | Security เท่านั้น (ไม่มี Admin) |
 
 เปิดแอปครั้งแรกจะล้างผู้ใช้เดิมทั้งหมด แล้วสร้างสองบัญชีนี้ (รหัสผ่านทุกบัญชีเป็น `123456`)
 

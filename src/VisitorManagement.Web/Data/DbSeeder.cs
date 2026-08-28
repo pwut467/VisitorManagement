@@ -307,9 +307,35 @@ public static class DbSeeder
             await userManager.UpdateAsync(user);
         }
 
+        await EnsureExclusiveRoleAsync(userManager, user, role);
+    }
+
+    /// <summary>
+    /// Ensures the user has exactly <paramref name="role"/> (e.g. 9641 = Security only).
+    /// </summary>
+    public static async Task EnsureExclusiveRoleAsync(
+        UserManager<ApplicationUser> userManager,
+        ApplicationUser user,
+        string role)
+    {
+        var current = await userManager.GetRolesAsync(user);
+        var extra = current.Where(r => !string.Equals(r, role, StringComparison.OrdinalIgnoreCase)).ToList();
+        if (extra.Count > 0)
+        {
+            var remove = await userManager.RemoveFromRolesAsync(user, extra);
+            if (!remove.Succeeded)
+            {
+                throw new InvalidOperationException(string.Join("; ", remove.Errors.Select(e => e.Description)));
+            }
+        }
+
         if (!await userManager.IsInRoleAsync(user, role))
         {
-            await userManager.AddToRoleAsync(user, role);
+            var add = await userManager.AddToRoleAsync(user, role);
+            if (!add.Succeeded)
+            {
+                throw new InvalidOperationException(string.Join("; ", add.Errors.Select(e => e.Description)));
+            }
         }
     }
 }

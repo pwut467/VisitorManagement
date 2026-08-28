@@ -29,10 +29,42 @@ public class DbSeederTests
         Assert.True(await users.CheckPasswordAsync(security, "123456"));
         Assert.True(await users.IsInRoleAsync(admin, AppRoles.Admin));
         Assert.True(await users.IsInRoleAsync(security, AppRoles.Security));
+        Assert.False(await users.IsInRoleAsync(security, AppRoles.Admin));
+        Assert.Equal(new[] { AppRoles.Security }, (await users.GetRolesAsync(security)).OrderBy(r => r).ToArray());
+        Assert.Equal(new[] { AppRoles.Admin }, (await users.GetRolesAsync(admin)).OrderBy(r => r).ToArray());
         Assert.Null(await users.FindByNameAsync("admin@company.local"));
         Assert.True(await db.Employees.AllAsync(e => e.UserId == null));
         Assert.Equal(0, await db.Visits.CountAsync());
         Assert.Equal(0, await db.Visitors.CountAsync());
+    }
+
+    [Fact]
+    public async Task SeedAsyncStripsExtraRolesFromSecurityUser()
+    {
+        var provider = CreateIdentityServices();
+        await DbSeeder.SeedAsync(provider);
+
+        using (var scope = provider.CreateScope())
+        {
+            var users = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+            var security = await users.FindByNameAsync("9641");
+            Assert.NotNull(security);
+            await users.AddToRoleAsync(security, AppRoles.Admin);
+            await users.AddToRoleAsync(security, AppRoles.Reception);
+            Assert.True(await users.IsInRoleAsync(security, AppRoles.Admin));
+        }
+
+        await DbSeeder.SeedAsync(provider);
+
+        using (var scope = provider.CreateScope())
+        {
+            var users = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+            var security = await users.FindByNameAsync("9641");
+            Assert.NotNull(security);
+            var roles = await users.GetRolesAsync(security);
+            Assert.Equal(new[] { AppRoles.Security }, roles.OrderBy(r => r).ToArray());
+            Assert.False(await users.IsInRoleAsync(security, AppRoles.Admin));
+        }
     }
 
     [Fact]
