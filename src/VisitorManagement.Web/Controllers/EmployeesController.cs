@@ -27,7 +27,7 @@ public class EmployeesController : Controller
     public async Task<IActionResult> Create()
     {
         await DepartmentsAsync();
-        return View(new EmployeeFormViewModel());
+        return View("Edit", new EmployeeFormViewModel());
     }
 
     [HttpPost]
@@ -37,7 +37,13 @@ public class EmployeesController : Controller
         await DepartmentsAsync();
         if (!ModelState.IsValid)
         {
-            return View(model);
+            return View("Edit", model);
+        }
+
+        if (await _db.Employees.AnyAsync(e => e.EmployeeCode == model.EmployeeCode.Trim()))
+        {
+            ModelState.AddModelError(nameof(model.EmployeeCode), "รหัสพนักงานนี้มีอยู่แล้ว");
+            return View("Edit", model);
         }
 
         _db.Employees.Add(new Employee
@@ -91,7 +97,14 @@ public class EmployeesController : Controller
             return NotFound();
         }
 
-        e.EmployeeCode = model.EmployeeCode.Trim();
+        var code = model.EmployeeCode.Trim();
+        if (await _db.Employees.AnyAsync(x => x.EmployeeCode == code && x.Id != id))
+        {
+            ModelState.AddModelError(nameof(model.EmployeeCode), "รหัสพนักงานนี้มีอยู่แล้ว");
+            return View(model);
+        }
+
+        e.EmployeeCode = code;
         e.FullName = model.FullName.Trim();
         e.DepartmentId = model.DepartmentId;
         e.Phone = model.Phone;
@@ -99,6 +112,28 @@ public class EmployeesController : Controller
         e.IsActive = model.IsActive;
         await _db.SaveChangesAsync();
         TempData["Success"] = "บันทึกพนักงานแล้ว";
+        return RedirectToAction(nameof(Index));
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> Delete(int id)
+    {
+        var e = await _db.Employees.FindAsync(id);
+        if (e is null)
+        {
+            return NotFound();
+        }
+
+        if (await _db.Visits.AnyAsync(v => v.HostEmployeeId == id))
+        {
+            TempData["Error"] = $"ลบพนักงาน '{e.FullName}' ไม่ได้ เพราะถูกใช้ในประวัติการเข้าพบ — ปิดการใช้งานแทน";
+            return RedirectToAction(nameof(Index));
+        }
+
+        _db.Employees.Remove(e);
+        await _db.SaveChangesAsync();
+        TempData["Success"] = $"ลบพนักงาน {e.FullName} แล้ว";
         return RedirectToAction(nameof(Index));
     }
 
