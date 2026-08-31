@@ -12,12 +12,6 @@ namespace VisitorManagement.Web.Controllers;
 [Authorize(Roles = AppRoles.Admin)]
 public class UsersController : Controller
 {
-    private static readonly HashSet<string> OfficialUserNames = new(StringComparer.OrdinalIgnoreCase)
-    {
-        "SKAdmin",
-        "9641"
-    };
-
     private readonly UserManager<ApplicationUser> _users;
     private readonly AppDbContext _db;
 
@@ -30,10 +24,10 @@ public class UsersController : Controller
     public async Task<IActionResult> Index()
     {
         var users = await _users.Users.OrderBy(u => u.UserName).ToListAsync();
-        var rows = new List<(ApplicationUser User, IList<string> Roles, bool IsOfficial)>();
+        var rows = new List<(ApplicationUser User, IList<string> Roles, bool CanDelete)>();
         foreach (var u in users)
         {
-            rows.Add((u, await _users.GetRolesAsync(u), IsOfficial(u.UserName)));
+            rows.Add((u, await _users.GetRolesAsync(u), CanDelete(u.UserName)));
         }
 
         return View(rows);
@@ -123,7 +117,7 @@ public class UsersController : Controller
             return NotFound();
         }
 
-        var official = IsOfficial(user.UserName);
+        var official = IsProtectedAdmin(user.UserName);
         model.IsOfficialAccount = official;
         model.RoleLocked = IsSecurityOnlyAccount(user.UserName);
         if (model.RoleLocked)
@@ -206,7 +200,7 @@ public class UsersController : Controller
             return NotFound();
         }
 
-        if (IsOfficial(user.UserName))
+        if (IsProtectedAdmin(user.UserName))
         {
             TempData["Error"] = $"ไม่สามารถลบบัญชีระบบ {user.UserName} ได้";
             return RedirectToAction(nameof(Index));
@@ -280,7 +274,7 @@ public class UsersController : Controller
         Email = user.Email,
         Role = role,
         IsActive = user.IsActive,
-        IsOfficialAccount = IsOfficial(user.UserName),
+        IsOfficialAccount = IsProtectedAdmin(user.UserName),
         RoleLocked = IsSecurityOnlyAccount(user.UserName)
     };
 
@@ -353,8 +347,10 @@ public class UsersController : Controller
         }
     }
 
-    private static bool IsOfficial(string? userName) =>
-        !string.IsNullOrWhiteSpace(userName) && OfficialUserNames.Contains(userName);
+    private static bool IsProtectedAdmin(string? userName) =>
+        string.Equals(userName, "SKAdmin", StringComparison.OrdinalIgnoreCase);
+
+    private static bool CanDelete(string? userName) => !IsProtectedAdmin(userName);
 
     private static bool IsSecurityOnlyAccount(string? userName) =>
         string.Equals(userName, "9641", StringComparison.OrdinalIgnoreCase);

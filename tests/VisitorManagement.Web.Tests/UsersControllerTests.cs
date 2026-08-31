@@ -64,7 +64,7 @@ public class UsersControllerTests
     }
 
     [Fact]
-    public async Task Delete_RejectsOfficialSecurityUser()
+    public async Task Delete_AllowsSecurityUser_ButRejectsSkAdmin()
     {
         var provider = CreateServices();
         await DbSeeder.SeedAsync(provider);
@@ -78,9 +78,14 @@ public class UsersControllerTests
         Assert.NotNull(security);
 
         var controller = CreateController(users, db, admin.Id);
-        var result = await controller.Delete(security.Id);
-        Assert.IsType<RedirectToActionResult>(result);
-        Assert.NotNull(await users.FindByNameAsync("9641"));
+
+        var deleteSecurity = await controller.Delete(security.Id);
+        Assert.IsType<RedirectToActionResult>(deleteSecurity);
+        Assert.Null(await users.FindByNameAsync("9641"));
+
+        var deleteAdmin = await controller.Delete(admin.Id);
+        Assert.IsType<RedirectToActionResult>(deleteAdmin);
+        Assert.NotNull(await users.FindByNameAsync("SKAdmin"));
         Assert.Contains("ไม่สามารถลบ", controller.TempData["Error"]?.ToString());
     }
 
