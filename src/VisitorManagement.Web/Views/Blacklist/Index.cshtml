@@ -38,7 +38,7 @@
             @foreach (var x in Model)
             {
                 <tr>
-                    <td>@ThaiNationalId.Mask(x.NationalId)</td>
+                    <td>@await Html.PartialAsync("_NationalIdReveal", x.NationalId)</td>
                     <td>@x.FullName</td>
                     <td>@x.Reason</td>
                     <td>@(x.ExpiresAt?.ToString("dd/MM/yyyy") ?? "ไม่หมดอายุ")</td>

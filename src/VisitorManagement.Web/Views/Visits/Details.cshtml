@@ -29,7 +29,7 @@
             <div class="row">
                 <div class="col-md-6">
                     <dl>
-                        <dt>เลขบัตรประชาชน</dt><dd>@ThaiNationalId.Mask(Model.Visitor.NationalId)</dd>
+                        <dt>เลขบัตรประชาชน</dt><dd>@await Html.PartialAsync("_NationalIdReveal", Model.Visitor.NationalId)</dd>
                         <dt>บริษัท</dt><dd>@(Model.CompanyName ?? "-")</dd>
                         <dt>โทร</dt><dd>@(Model.GuestPhone ?? Model.Visitor.Phone ?? "-")</dd>
                         <dt>มาติดต่อ</dt><dd>@Model.HostEmployee.FullName (@Model.HostEmployee.Department.Name)</dd>

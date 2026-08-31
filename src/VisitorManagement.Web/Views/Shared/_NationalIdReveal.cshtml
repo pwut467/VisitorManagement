@@ -1,0 +1,25 @@
+@model string?
+@{
+    var raw = Model;
+    var masked = ThaiNationalId.Mask(raw);
+    var full = ThaiNationalId.Format(raw);
+    var canReveal = User.IsInRole("Admin") && !string.IsNullOrWhiteSpace(ThaiNationalId.Normalize(raw));
+}
+@if (canReveal)
+{
+    <span class="national-id-reveal d-inline-flex align-items-center gap-1"
+          data-masked="@masked"
+          data-full="@full">
+        <span class="national-id-text font-monospace">@masked</span>
+        <button type="button"
+                class="btn btn-link btn-sm p-0 border-0 national-id-toggle"
+                title="แสดงเลขบัตรประชาชน"
+                aria-label="แสดงเลขบัตรประชาชน">
+            <i class="bi bi-eye" aria-hidden="true"></i>
+        </button>
+    </span>
+}
+else
+{
+    <span class="font-monospace">@masked</span>
+}
