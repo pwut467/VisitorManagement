@@ -208,12 +208,20 @@ ConnectionStrings__SqlServer=Server=.\SQLEXPRESS;Database=VisitorManagment;User 
 3. บนเครื่องนั้นรัน:
 
 ```bash
-dotnet run -f net8.0-windows --project src/VisitorManagement.CardReader
+dotnet run --project src/VisitorManagement.CardReader
 ```
 
 หรือดับเบิลคลิก `src/VisitorManagement.CardReader/start-card-reader.bat`
 
 บน Windows โปรแกรมจะ**ย่อใน System Tray** (คลิกขวาไอคอนเพื่อดูสถานะหรือออก)
+
+Publish ไปเครื่องอื่น:
+
+```bash
+dotnet publish src/VisitorManagement.CardReader -c Release -o ./publish
+```
+
+หรือใช้ `src/VisitorManagement.CardReader/publish-card-reader.bat` / Visual Studio Publish (โปรไฟล์ FolderProfile)
 
 โปรแกรมจะฟังที่ `http://127.0.0.1:5001`
 

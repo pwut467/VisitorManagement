@@ -1,18 +1,8 @@
 #!/usr/bin/env bash
+# CardReader is a Windows System Tray (WinForms) app — not supported on Linux.
 set -euo pipefail
-cd "$(dirname "$0")"
-echo "เปิดโปรแกรมอ่านบัตรประชาชน ที่ http://127.0.0.1:5001"
-echo "เสียบเครื่องอ่าน USB แล้วเสียบบัตรก่อนกด \"อ่านบัตรประชาชน\" ในเว็บ"
-
-if command -v pcscd >/dev/null 2>&1; then
-  if ! pgrep -x pcscd >/dev/null 2>&1; then
-    echo "กำลังเปิด pcscd..."
-    if command -v systemctl >/dev/null 2>&1 && systemctl is-system-running >/dev/null 2>&1; then
-      sudo systemctl start pcscd.socket pcscd.service 2>/dev/null || sudo pcscd --disable-polkit || true
-    else
-      sudo pcscd --disable-polkit || true
-    fi
-  fi
-fi
-
-dotnet run -f net8.0 --launch-profile CardReader
+echo "VisitorManagement.CardReader รองรับเฉพาะ Windows (System Tray + PC/SC)"
+echo "บน Windows ใช้: start-card-reader.bat หรือ"
+echo "  dotnet run --project src/VisitorManagement.CardReader"
+echo "  dotnet publish src/VisitorManagement.CardReader -c Release"
+exit 1
