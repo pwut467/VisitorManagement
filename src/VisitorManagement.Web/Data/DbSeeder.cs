@@ -155,21 +155,7 @@ public static class DbSeeder
 
         await db.SaveChangesAsync();
 
-        if (!await db.Employees.AnyAsync())
-        {
-            var hr = await db.Departments.FirstAsync(d => d.Code == "HR");
-            var it = await db.Departments.FirstAsync(d => d.Code == "IT");
-            var op = await db.Departments.FirstAsync(d => d.Code == "OP");
-            var sa = await db.Departments.FirstAsync(d => d.Code == "SA");
-
-            db.Employees.AddRange(
-                new Employee { EmployeeCode = "5700530", FullName = "นายเวิน บุษภาค", DepartmentId = hr.Id, Phone = "081-111-0001", Email = "somchai@example.com" },
-                new Employee { EmployeeCode = "5300162", FullName = "สมหญิง รักงาน", DepartmentId = it.Id, Phone = "081-111-0002", Email = "somying@example.com" },
-                new Employee { EmployeeCode = "E003", FullName = "วิชัย รักษา", DepartmentId = op.Id, Phone = "081-111-0003", Email = "wichai@example.com" },
-                new Employee { EmployeeCode = "E004", FullName = "นภา สายลม", DepartmentId = sa.Id, Phone = "081-111-0004", Email = "napa@example.com" },
-                new Employee { EmployeeCode = "E005", FullName = "กิตติ ตั้งตรง", DepartmentId = it.Id, Phone = "081-111-0005", Email = "kitti@example.com" });
-            await db.SaveChangesAsync();
-        }
+        await SeedDemoEmployeesOnceAsync(db);
 
         await ResetUsersAsync(db, userManager);
         await ClearVisitorRecordsOnceAsync(db);
@@ -236,6 +222,50 @@ public static class DbSeeder
 
         await EnsureUserAsync(userManager, "SKAdmin", defaultPassword, "ผู้ดูแลระบบ", AppRoles.Admin);
         await EnsureUserAsync(userManager, "9641", defaultPassword, "รปภ.", AppRoles.Security);
+    }
+
+    /// <summary>
+    /// Seeds sample employees only once. After SeedRevision &gt;= 3, an empty employee
+    /// list is left alone (user may have deleted them on purpose).
+    /// </summary>
+    private static async Task SeedDemoEmployeesOnceAsync(AppDbContext db)
+    {
+        const int employeesSeedRevision = 3;
+        var companies = await db.CompanyProfiles.OrderBy(c => c.Id).ToListAsync();
+        if (companies.Count == 0)
+        {
+            return;
+        }
+
+        if (companies.Any(c => c.SeedRevision >= employeesSeedRevision))
+        {
+            return;
+        }
+
+        if (!await db.Employees.AnyAsync())
+        {
+            var hr = await db.Departments.FirstAsync(d => d.Code == "HR");
+            var it = await db.Departments.FirstAsync(d => d.Code == "IT");
+            var op = await db.Departments.FirstAsync(d => d.Code == "OP");
+            var sa = await db.Departments.FirstAsync(d => d.Code == "SA");
+
+            db.Employees.AddRange(
+                new Employee { EmployeeCode = "5700530", FullName = "นายเวิน บุษภาค", DepartmentId = hr.Id, Phone = "081-111-0001", Email = "somchai@example.com" },
+                new Employee { EmployeeCode = "5300162", FullName = "สมหญิง รักงาน", DepartmentId = it.Id, Phone = "081-111-0002", Email = "somying@example.com" },
+                new Employee { EmployeeCode = "E003", FullName = "วิชัย รักษา", DepartmentId = op.Id, Phone = "081-111-0003", Email = "wichai@example.com" },
+                new Employee { EmployeeCode = "E004", FullName = "นภา สายลม", DepartmentId = sa.Id, Phone = "081-111-0004", Email = "napa@example.com" },
+                new Employee { EmployeeCode = "E005", FullName = "กิตติ ตั้งตรง", DepartmentId = it.Id, Phone = "081-111-0005", Email = "kitti@example.com" });
+        }
+
+        foreach (var company in companies)
+        {
+            if (company.SeedRevision < employeesSeedRevision)
+            {
+                company.SeedRevision = employeesSeedRevision;
+            }
+        }
+
+        await db.SaveChangesAsync();
     }
 
     private static async Task ClearVisitorRecordsOnceAsync(AppDbContext db)

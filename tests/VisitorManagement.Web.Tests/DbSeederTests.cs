@@ -39,6 +39,31 @@ public class DbSeederTests
     }
 
     [Fact]
+    public async Task SeedAsync_DoesNotRecreateEmployeesAfterUserDeletedThem()
+    {
+        var provider = CreateIdentityServices();
+        await DbSeeder.SeedAsync(provider);
+
+        using (var scope = provider.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+            Assert.Equal(5, await db.Employees.CountAsync());
+            db.Employees.RemoveRange(db.Employees);
+            await db.SaveChangesAsync();
+            Assert.Equal(0, await db.Employees.CountAsync());
+        }
+
+        await DbSeeder.SeedAsync(provider);
+
+        using (var scope = provider.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+            Assert.Equal(0, await db.Employees.CountAsync());
+            Assert.True(await db.CompanyProfiles.AllAsync(c => c.SeedRevision >= 3));
+        }
+    }
+
+    [Fact]
     public async Task SeedAsyncStripsExtraRolesFromSecurityUser()
     {
         var provider = CreateIdentityServices();

@@ -127,16 +127,46 @@ public class EmployeesController : Controller
 
         if (await _db.Visits.AnyAsync(v => v.HostEmployeeId == id))
         {
-            TempData["Error"] = $"ลบพนักงาน '{e.FullName}' ไม่ได้ เพราะถูกใช้ในประวัติการเข้าพบ — ปิดการใช้งานแทน";
+            var blocked = $"ลบพนักงาน '{e.FullName}' ไม่ได้ เพราะถูกใช้ในประวัติการเข้าพบ — ปิดการใช้งานแทน";
+            if (WantsJson())
+            {
+                return BadRequest(new { ok = false, message = blocked });
+            }
+
+            TempData["Error"] = blocked;
             return RedirectToAction(nameof(Index));
         }
 
+        var name = e.FullName;
         _db.Employees.Remove(e);
         await _db.SaveChangesAsync();
-        TempData["Success"] = $"ลบพนักงาน {e.FullName} แล้ว";
+
+        var message = $"ลบพนักงาน {name} แล้ว";
+        if (WantsJson())
+        {
+            return Json(new { ok = true, message });
+        }
+
+        TempData["Success"] = message;
         return RedirectToAction(nameof(Index));
     }
 
+    private bool WantsJson()
+    {
+        var request = ControllerContext?.HttpContext?.Request;
+        if (request is null)
+        {
+            return false;
+        }
+
+        if (string.Equals(request.Headers["X-Requested-With"], "XMLHttpRequest", StringComparison.OrdinalIgnoreCase))
+        {
+            return true;
+        }
+
+        var accept = request.Headers.Accept.ToString();
+        return accept.Contains("application/json", StringComparison.OrdinalIgnoreCase);
+    }
     private async Task DepartmentsAsync()
     {
         ViewBag.Departments = await _db.Departments
