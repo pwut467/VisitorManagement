@@ -1,4 +1,4 @@
-@model List<(ApplicationUser User, IList<string> Roles, bool IsOfficial)>
+@model List<(ApplicationUser User, IList<string> Roles, bool CanDelete)>
 @{
     ViewData["Title"] = "ผู้ใช้ระบบ";
 }
@@ -11,7 +11,7 @@
     <div class="alert alert-danger">@error</div>
 }
 <div class="d-flex justify-content-between mb-3">
-    <p class="text-muted mb-0">สิทธิ์: Admin, Security (รปภ.), Reception, Host</p>
+    <p class="text-muted mb-0">สิทธิ์: Admin, Security (รปภ.), Reception, Host — ลบได้ทุกบัญชียกเว้น SKAdmin</p>
     <a class="btn btn-teal" asp-action="Create">เพิ่มผู้ใช้</a>
 </div>
 <div class="card vm-card p-3">
@@ -40,7 +40,7 @@
                             @Html.AntiForgeryToken()
                             <button type="submit" class="btn btn-sm btn-outline-secondary">สลับสถานะ</button>
                         </form>
-                        @if (!row.IsOfficial)
+                        @if (row.CanDelete)
                         {
                             <form asp-action="Delete" asp-route-id="@row.User.Id" method="post" class="d-inline"
                                   onsubmit="return confirm('ลบผู้ใช้ @row.User.UserName ใช่หรือไม่?');">
