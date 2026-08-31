@@ -9,7 +9,7 @@ fi
 
 if ! curl -sf --max-time 1 http://127.0.0.1:5001/health >/dev/null 2>&1; then
   echo "Starting VisitorManagement.CardReader on http://127.0.0.1:5001"
-  nohup dotnet run --project src/VisitorManagement.CardReader --no-launch-profile --urls http://127.0.0.1:5001 \
+  nohup dotnet run -f net8.0 --project src/VisitorManagement.CardReader --no-launch-profile --urls http://127.0.0.1:5001 \
     >/tmp/visitor-card-reader.log 2>&1 </dev/null &
   disown || true
   for _ in $(seq 1 45); do

@@ -2,15 +2,21 @@
 
 รันบนเครื่องที่เสียบเครื่องอ่าน USB (เครื่อง รปภ.) ไม่ใช่บนเซิร์ฟเวอร์เว็บ
 
-## Windows
+## Windows (System Tray)
 
 ดับเบิลคลิก `start-card-reader.bat` หรือ:
 
 ```bash
-dotnet run --project src/VisitorManagement.CardReader
+dotnet run -f net8.0-windows --project src/VisitorManagement.CardReader
 ```
 
-## Linux
+โปรแกรมจะ**ย่อลง System Tray** (ไม่มีหน้าต่าง console)
+
+- คลิกขวาไอคอน → สถานะเครื่องอ่าน / เปิดหน้า Health / ออกจากโปรแกรม
+- ดับเบิลคลิกไอคอน → ดูสถานะ
+- รันซ้ำถ้าเปิดอยู่แล้ว จะแจ้งว่ากำลังทำงานอยู่
+
+## Linux (console)
 
 ```bash
 chmod +x src/VisitorManagement.CardReader/start-card-reader.sh
@@ -18,6 +24,10 @@ chmod +x src/VisitorManagement.CardReader/start-card-reader.sh
 ```
 
 ต้องการ: `pcscd`, `libpcsclite1`, `libccid`
+
+```bash
+dotnet run -f net8.0 --project src/VisitorManagement.CardReader
+```
 
 ฟังที่ `http://127.0.0.1:5001`
 

@@ -208,10 +208,12 @@ ConnectionStrings__SqlServer=Server=.\SQLEXPRESS;Database=VisitorManagment;User 
 3. บนเครื่องนั้นรัน:
 
 ```bash
-dotnet run --project src/VisitorManagement.CardReader
+dotnet run -f net8.0-windows --project src/VisitorManagement.CardReader
 ```
 
 หรือดับเบิลคลิก `src/VisitorManagement.CardReader/start-card-reader.bat`
+
+บน Windows โปรแกรมจะ**ย่อใน System Tray** (คลิกขวาไอคอนเพื่อดูสถานะหรือออก)
 
 โปรแกรมจะฟังที่ `http://127.0.0.1:5001`
 

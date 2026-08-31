@@ -15,4 +15,4 @@ if command -v pcscd >/dev/null 2>&1; then
   fi
 fi
 
-dotnet run --launch-profile CardReader
+dotnet run -f net8.0 --launch-profile CardReader
