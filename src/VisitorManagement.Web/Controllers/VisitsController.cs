@@ -126,7 +126,9 @@ public class VisitsController : Controller
         visit.BadgePrintedAt = TimeHelper.Now;
         await _db.SaveChangesAsync();
 
-        ViewBag.BarcodeSvg = Code128Barcode.Svg(visit.VisitNumber, barHeight: 56);
+        // QR is the primary scannable mark for phones; Code128 remains for USB wedge scanners.
+        ViewBag.QrDataUrl = _qr.DataUrl("VISIT|" + visit.VisitCode, pixelsPerModule: 8);
+        ViewBag.BarcodeSvg = Code128Barcode.Svg(visit.VisitNumber, barHeight: 72, module: 2, includeLabel: false);
         ViewBag.Company = visit.CompanyProfile
             ?? await _db.CompanyProfiles.FirstAsync(c => c.Id == visit.CompanyProfileId);
         ViewBag.AutoPrint = VisitorManagement.Web.ViewFlag.IsOn(autoprint);

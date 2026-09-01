@@ -15,9 +15,18 @@ public class Code128BarcodeTests
     }
 
     [Fact]
+    public void SvgCanOmitLabel()
+    {
+        var svg = Code128Barcode.Svg("V20260825-0001", includeLabel: false);
+        Assert.DoesNotContain("<text", svg);
+        Assert.Contains("preserveAspectRatio", svg);
+    }
+
+    [Fact]
     public void SvgContainsVisitNumberAndBars()
     {
         var svg = Code128Barcode.Svg("V20260825-0001");
+        Assert.Contains("preserveAspectRatio", svg);
         Assert.Contains("V20260825-0001", svg);
         Assert.Contains("<rect", svg);
         Assert.Contains("<svg", svg);

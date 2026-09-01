@@ -3,6 +3,7 @@
     Layout = null;
     var company = (CompanyProfile)ViewBag.Company;
     var barcode = ViewBag.BarcodeSvg as string ?? "";
+    var qrDataUrl = ViewBag.QrDataUrl as string ?? "";
     var autoPrint = ViewFlag.IsOn(ViewBag.AutoPrint);
     var returnUrl = ViewBag.ReturnUrl as string;
     var detailsUrl = Url.Action("Details", "Visits", new { id = Model.Id, returnUrl }) ?? $"/Visits/Details/{Model.Id}";
@@ -55,8 +56,38 @@
         }
         .head .company { font-size: 11px; font-weight: 600; line-height: 1.3; }
         .head .title { font-size: 16px; font-weight: 700; }
-        .barcode { text-align: center; margin: 4px 0 8px; }
-        .barcode svg { width: 100%; height: 72px; }
+        .codes {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            margin: 4px 0 8px;
+        }
+        .qr {
+            text-align: center;
+            line-height: 0;
+        }
+        .qr img {
+            width: 34mm;
+            height: 34mm;
+            image-rendering: pixelated;
+            image-rendering: crisp-edges;
+        }
+        /* Never set both width and height — stretching bars makes Code128 unscannable. */
+        .barcode { text-align: center; width: 100%; }
+        .barcode svg {
+            display: block;
+            width: 100%;
+            max-width: 74mm;
+            height: auto;
+            margin: 0 auto;
+        }
+        .scan-hint {
+            text-align: center;
+            font-size: 9px;
+            color: #334155;
+            margin: 0 0 4px;
+        }
         .row {
             display: flex;
             gap: 6px;
@@ -107,7 +138,14 @@
             <div class="company">@company.Name</div>
             <div class="title">บัตรผู้มาติดต่อ</div>
         </div>
-        <div class="barcode">@Html.Raw(barcode)</div>
+        <div class="codes">
+            @if (!string.IsNullOrEmpty(qrDataUrl))
+            {
+                <div class="qr"><img src="@qrDataUrl" alt="QR @Model.VisitNumber" /></div>
+                <div class="scan-hint">สแกน QR ด้วยมือถือ / เครื่องสแกน</div>
+            }
+            <div class="barcode">@Html.Raw(barcode)</div>
+        </div>
         <div class="row"><span class="lbl">เลขที่</span><span class="val">@Model.VisitNumber</span></div>
         <div class="row"><span class="lbl">วันที่เวลาเข้า</span><span class="val">@checkInAt.ToString("dd/MM/yyyy HH:mm")</span></div>
         <div class="row"><span class="lbl">ชื่อผู้มาติดต่อ</span><span class="val">@Model.GuestFullName</span></div>

@@ -7,7 +7,7 @@
     <div class="col-lg-6">
         <div class="card vm-card p-4">
             <h2 class="h5">สแกนบัตร Visitor</h2>
-            <p class="text-muted">ใช้เครื่องสแกน QR แบบ USB (keyboard wedge) หรือพิมพ์รหัสบัตร</p>
+            <p class="text-muted">สแกน QR บนบัตรด้วยเครื่องสแกน USB หรือแอปมือถือ — หรือพิมพ์รหัสบัตร / Visit Number</p>
             <form asp-action="Index" method="post">
                 @if (ViewBag.ReturnUrl is string returnUrl && !string.IsNullOrEmpty(returnUrl))
                 {
