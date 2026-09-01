@@ -5,12 +5,12 @@
 <div class="card vm-card p-4" style="max-width:640px">
     <form method="post">
         <div class="mb-3">
-            <label asp-for="FullName" class="form-label"></label>
-            <input asp-for="FullName" class="form-control" />
+            <label asp-for="NationalId" class="form-label"></label>
+            <input asp-for="NationalId" class="form-control" maxlength="13" autofocus inputmode="numeric" />
         </div>
         <div class="mb-3">
-            <label asp-for="NationalId" class="form-label"></label>
-            <input asp-for="NationalId" class="form-control" maxlength="13" />
+            <label asp-for="FullName" class="form-label"></label>
+            <input asp-for="FullName" class="form-control" />
         </div>
         <div class="mb-3">
             <label asp-for="Reason" class="form-label"></label>

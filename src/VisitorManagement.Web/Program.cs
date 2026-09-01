@@ -3,16 +3,23 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc.Authorization;
 using Microsoft.EntityFrameworkCore;
 using VisitorManagement.Web.Data;
+using VisitorManagement.Web.Middleware;
 using VisitorManagement.Web.Models;
 using VisitorManagement.Web.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Optional per-machine overrides (not committed). Copy from appsettings.Local.json.example.
+builder.Configuration.AddJsonFile("appsettings.Local.json", optional: true, reloadOnChange: true);
+
 var provider = builder.Environment.IsEnvironment("Testing")
     ? "InMemory"
     : builder.Configuration["Database:Provider"] ?? "SqlServer";
 
-builder.Services.AddDbContext<AppDbContext>(options =>
+builder.Services.AddSingleton<AppStartupState>();
+builder.Services.AddSingleton<SqlConnectionResolver>();
+
+builder.Services.AddDbContext<AppDbContext>((sp, options) =>
 {
     switch (provider)
     {
@@ -20,8 +27,7 @@ builder.Services.AddDbContext<AppDbContext>(options =>
             options.UseInMemoryDatabase("VisitorManagement");
             break;
         default:
-            options.UseSqlServer(builder.Configuration.GetConnectionString("SqlServer")
-                ?? @"Server=.\SQLEXPRESS;Database=VisitorManagment;Trusted_Connection=True;TrustServerCertificate=True;MultipleActiveResultSets=True");
+            options.UseSqlServer(sp.GetRequiredService<SqlConnectionResolver>().ConnectionString);
             break;
     }
 });
@@ -78,9 +84,31 @@ if (!builder.Environment.IsEnvironment("Testing"))
 
 var app = builder.Build();
 
-if (!app.Environment.IsEnvironment("Testing"))
+var startupState = app.Services.GetRequiredService<AppStartupState>();
+if (app.Environment.IsEnvironment("Testing"))
 {
-    await DbSeeder.SeedAsync(app.Services);
+    startupState.MarkReady();
+}
+else
+{
+    try
+    {
+        await DbSeeder.SeedAsync(app.Services);
+        startupState.MarkReady();
+    }
+    catch (Exception ex)
+    {
+        var logger = app.Services.GetRequiredService<ILoggerFactory>().CreateLogger("Startup");
+        var message = ex.GetBaseException().Message;
+        if (ex is InvalidOperationException ioe && !string.IsNullOrWhiteSpace(ioe.Message))
+        {
+            message = ioe.Message;
+        }
+
+        var logPath = WriteStartupErrorLog(app.Environment.ContentRootPath, message, ex);
+        logger.LogCritical(ex, "Database bootstrap failed. See {LogPath}", logPath);
+        startupState.MarkFailed(message, logPath);
+    }
 }
 
 if (!app.Environment.IsDevelopment())
@@ -89,6 +117,7 @@ if (!app.Environment.IsDevelopment())
 }
 
 app.UseStaticFiles();
+app.UseMiddleware<DatabaseReadyMiddleware>();
 app.UseRouting();
 app.UseAuthentication();
 app.UseAuthorization();
@@ -98,5 +127,25 @@ app.MapControllerRoute(
     pattern: "{controller=Dashboard}/{action=Index}/{id?}");
 
 app.Run();
+
+static string WriteStartupErrorLog(string contentRoot, string message, Exception ex)
+{
+    try
+    {
+        var logsDir = Path.Combine(contentRoot, "logs");
+        Directory.CreateDirectory(logsDir);
+        var path = Path.Combine(logsDir, "startup-error.txt");
+        var text =
+            DateTimeOffset.Now.ToString("u") + Environment.NewLine +
+            message + Environment.NewLine + Environment.NewLine +
+            ex + Environment.NewLine;
+        File.WriteAllText(path, text);
+        return path;
+    }
+    catch
+    {
+        return "(เขียนไฟล์ logs/startup-error.txt ไม่สำเร็จ — ดู Event Viewer / stdout log)";
+    }
+}
 
 public partial class Program;

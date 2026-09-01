@@ -1,22 +1,27 @@
 @model EmployeeFormViewModel
 @{
-    ViewData["Title"] = Model.Id is null ? "เพิ่มพนักงาน" : "แก้ไขพนักงาน";
-    var action = Model.Id is null ? "Create" : "Edit";
+    var isEdit = Model.Id is > 0;
+    ViewData["Title"] = isEdit ? "แก้ไขพนักงาน" : "เพิ่มพนักงาน";
+    var action = isEdit ? "Edit" : "Create";
 }
 <div class="card vm-card p-4" style="max-width:640px">
-    <form asp-action="@action" method="post">
+    <form asp-action="@action" asp-route-id="@(Model.Id)" method="post">
+        <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
         <input type="hidden" asp-for="Id" />
         <div class="mb-3">
             <label asp-for="EmployeeCode" class="form-label"></label>
             <input asp-for="EmployeeCode" class="form-control" />
+            <span asp-validation-for="EmployeeCode" class="text-danger"></span>
         </div>
         <div class="mb-3">
             <label asp-for="FullName" class="form-label"></label>
             <input asp-for="FullName" class="form-control" />
+            <span asp-validation-for="FullName" class="text-danger"></span>
         </div>
         <div class="mb-3">
             <label asp-for="DepartmentId" class="form-label"></label>
             <select asp-for="DepartmentId" asp-items="ViewBag.Departments" class="form-select"></select>
+            <span asp-validation-for="DepartmentId" class="text-danger"></span>
         </div>
         <div class="mb-3">
             <label asp-for="Phone" class="form-label"></label>
@@ -34,3 +39,6 @@
         <a class="btn btn-outline-secondary" asp-action="Index">ยกเลิก</a>
     </form>
 </div>
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

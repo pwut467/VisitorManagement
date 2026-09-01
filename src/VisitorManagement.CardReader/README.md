@@ -1,8 +1,8 @@
 # โปรแกรมอ่านบัตรประชาชน
 
-รันบนเครื่องที่เสียบเครื่องอ่าน USB (เครื่อง รปภ.) ไม่ใช่บนเซิร์ฟเวอร์เว็บ
+รันบนเครื่อง Windows ที่เสียบเครื่องอ่าน USB (เครื่อง รปภ.) — ย่อใน **System Tray**
 
-## Windows
+## รัน
 
 ดับเบิลคลิก `start-card-reader.bat` หรือ:
 
@@ -10,14 +10,23 @@
 dotnet run --project src/VisitorManagement.CardReader
 ```
 
-## Linux
+## Publish (สำหรับ copy ไปเครื่องอื่น)
+
+ดับเบิลคลิก `publish-card-reader.bat` หรือ:
 
 ```bash
-chmod +x src/VisitorManagement.CardReader/start-card-reader.sh
-./src/VisitorManagement.CardReader/start-card-reader.sh
+dotnet publish src/VisitorManagement.CardReader -c Release -o ./publish
 ```
 
-ต้องการ: `pcscd`, `libpcsclite1`, `libccid`
+ใน Visual Studio: คลิกขวาโปรเจกต์ → **Publish** → ใช้โปรไฟล์ `FolderProfile` (target `net8.0-windows`)
+
+แล้วคัดลอกโฟลเดอร์ publish ไปเครื่อง รปภ. แล้วรัน `VisitorManagement.CardReader.exe`
+
+## System Tray
+
+- คลิกขวาไอคอน → สถานะเครื่องอ่าน / เปิดหน้า Health / ออกจากโปรแกรม
+- ดับเบิลคลิกไอคอน → ดูสถานะ
+- รันซ้ำถ้าเปิดอยู่แล้ว จะแจ้งว่ากำลังทำงานอยู่
 
 ฟังที่ `http://127.0.0.1:5001`
 
@@ -25,4 +34,4 @@ chmod +x src/VisitorManagement.CardReader/start-card-reader.sh
 - `GET /api/status`
 - `GET /api/thcard?photo=true`
 
-หมายเหตุ: เบราว์เซอร์ต้องเปิดเว็บและ CardReader บนเครื่องเดียวกัน (หรือ CardReader บนเครื่องที่มี USB เครื่องอ่าน) เพราะ agent ฟังที่ localhost เท่านั้น
+หมายเหตุ: เบราว์เซอร์ต้องเปิดเว็บและ CardReader บนเครื่องเดียวกัน (หรือใช้ proxy ของเว็บไปยัง agent บนเครื่องที่มี USB)

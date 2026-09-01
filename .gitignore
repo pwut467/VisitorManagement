@@ -489,3 +489,6 @@ $RECYCLE.BIN/
 *.db-wal
 src/VisitorManagement.Web/wwwroot/uploads/photos/*
 !src/VisitorManagement.Web/wwwroot/uploads/photos/.gitkeep
+
+# Machine-specific DB connection (copy from appsettings.Local.json.example)
+**/appsettings.Local.json

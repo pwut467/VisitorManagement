@@ -124,6 +124,10 @@
     {
         <script src="~/js/cloud-status.js" asp-append-version="true"></script>
     }
+    @if (User.IsInRole("Admin"))
+    {
+        <script src="~/js/national-id-reveal.js" asp-append-version="true"></script>
+    }
     @await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>

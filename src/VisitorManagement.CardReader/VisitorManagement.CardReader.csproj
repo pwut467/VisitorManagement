@@ -1,5 +1,19 @@
 <Project Sdk="Microsoft.NET.Sdk.Web">
 
+  <PropertyGroup>
+    <!-- Single TFM so Visual Studio / `dotnet publish` work without -f.
+         Windows tray is the supported runtime for CardReader (PC/SC + USB). -->
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <OutputType>WinExe</OutputType>
+    <UseWindowsForms>true</UseWindowsForms>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>VisitorManagement.CardReader</RootNamespace>
+    <AssemblyName>VisitorManagement.CardReader</AssemblyName>
+    <DefineConstants>$(DefineConstants);WINDOWS_TRAY</DefineConstants>
+    <EnableWindowsTargeting>true</EnableWindowsTargeting>
+  </PropertyGroup>
+
   <ItemGroup>
     <ProjectReference Include="..\VisitorManagement.CardReader.Core\VisitorManagement.CardReader.Core.csproj" />
   </ItemGroup>
@@ -8,11 +22,5 @@
     <PackageReference Include="PCSC" Version="7.0.1" />
     <PackageReference Include="System.Text.Encoding.CodePages" Version="8.0.0" />
   </ItemGroup>
-
-  <PropertyGroup>
-    <TargetFramework>net8.0</TargetFramework>
-    <Nullable>enable</Nullable>
-    <ImplicitUsings>enable</ImplicitUsings>
-  </PropertyGroup>
 
 </Project>

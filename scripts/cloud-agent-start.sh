@@ -8,14 +8,18 @@ if command -v pcscd >/dev/null 2>&1 && ! pgrep -x pcscd >/dev/null 2>&1; then
 fi
 
 if ! curl -sf --max-time 1 http://127.0.0.1:5001/health >/dev/null 2>&1; then
-  echo "Starting VisitorManagement.CardReader on http://127.0.0.1:5001"
-  nohup dotnet run --project src/VisitorManagement.CardReader --no-launch-profile --urls http://127.0.0.1:5001 \
-    >/tmp/visitor-card-reader.log 2>&1 </dev/null &
-  disown || true
-  for _ in $(seq 1 45); do
-    curl -sf --max-time 1 http://127.0.0.1:5001/health >/dev/null 2>&1 && break
-    sleep 1
-  done
+  if [[ "$(uname -s)" == "Linux" ]]; then
+    echo "Skipping CardReader on Linux (Windows System Tray app). Web can use /api/card-reader proxy when agent runs on a Windows PC."
+  else
+    echo "Starting VisitorManagement.CardReader on http://127.0.0.1:5001"
+    nohup dotnet run --project src/VisitorManagement.CardReader --no-launch-profile --urls http://127.0.0.1:5001 \
+      >/tmp/visitor-card-reader.log 2>&1 </dev/null &
+    disown || true
+    for _ in $(seq 1 45); do
+      curl -sf --max-time 1 http://127.0.0.1:5001/health >/dev/null 2>&1 && break
+      sleep 1
+    done
+  fi
 fi
 
 if ! curl -sf --max-time 1 http://127.0.0.1:5001/health >/dev/null 2>&1; then

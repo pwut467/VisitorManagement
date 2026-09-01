@@ -29,7 +29,8 @@ public class VisitNumberService : IVisitNumberService
             code = "DEFAULT";
         }
 
-        var prefix = $"{code}-V{localDate:yyyyMMdd}-";
+        // e.g. SKNY260901-001
+        var prefix = $"{code}{localDate:yyMMdd}-";
         var last = await _db.Visits
             .Where(v => v.CompanyProfileId == companyProfileId && v.VisitNumber.StartsWith(prefix))
             .OrderByDescending(v => v.VisitNumber)
@@ -37,12 +38,12 @@ public class VisitNumberService : IVisitNumberService
             .FirstOrDefaultAsync(cancellationToken);
 
         var seq = 1;
-        if (!string.IsNullOrEmpty(last) && last.Length >= prefix.Length + 4
+        if (!string.IsNullOrEmpty(last) && last.Length > prefix.Length
             && int.TryParse(last[prefix.Length..], out var parsed))
         {
             seq = parsed + 1;
         }
 
-        return $"{prefix}{seq:0000}";
+        return $"{prefix}{seq:000}";
     }
 }

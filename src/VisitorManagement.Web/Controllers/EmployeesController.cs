@@ -27,7 +27,7 @@ public class EmployeesController : Controller
     public async Task<IActionResult> Create()
     {
         await DepartmentsAsync();
-        return View(new EmployeeFormViewModel());
+        return View("Edit", new EmployeeFormViewModel());
     }
 
     [HttpPost]
@@ -37,7 +37,13 @@ public class EmployeesController : Controller
         await DepartmentsAsync();
         if (!ModelState.IsValid)
         {
-            return View(model);
+            return View("Edit", model);
+        }
+
+        if (await _db.Employees.AnyAsync(e => e.EmployeeCode == model.EmployeeCode.Trim()))
+        {
+            ModelState.AddModelError(nameof(model.EmployeeCode), "รหัสพนักงานนี้มีอยู่แล้ว");
+            return View("Edit", model);
         }
 
         _db.Employees.Add(new Employee
@@ -91,7 +97,14 @@ public class EmployeesController : Controller
             return NotFound();
         }
 
-        e.EmployeeCode = model.EmployeeCode.Trim();
+        var code = model.EmployeeCode.Trim();
+        if (await _db.Employees.AnyAsync(x => x.EmployeeCode == code && x.Id != id))
+        {
+            ModelState.AddModelError(nameof(model.EmployeeCode), "รหัสพนักงานนี้มีอยู่แล้ว");
+            return View(model);
+        }
+
+        e.EmployeeCode = code;
         e.FullName = model.FullName.Trim();
         e.DepartmentId = model.DepartmentId;
         e.Phone = model.Phone;
@@ -102,6 +115,58 @@ public class EmployeesController : Controller
         return RedirectToAction(nameof(Index));
     }
 
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> Delete(int id)
+    {
+        var e = await _db.Employees.FindAsync(id);
+        if (e is null)
+        {
+            return NotFound();
+        }
+
+        if (await _db.Visits.AnyAsync(v => v.HostEmployeeId == id))
+        {
+            var blocked = $"ลบพนักงาน '{e.FullName}' ไม่ได้ เพราะถูกใช้ในประวัติการเข้าพบ — ปิดการใช้งานแทน";
+            if (WantsJson())
+            {
+                return BadRequest(new { ok = false, message = blocked });
+            }
+
+            TempData["Error"] = blocked;
+            return RedirectToAction(nameof(Index));
+        }
+
+        var name = e.FullName;
+        _db.Employees.Remove(e);
+        await _db.SaveChangesAsync();
+
+        var message = $"ลบพนักงาน {name} แล้ว";
+        if (WantsJson())
+        {
+            return Json(new { ok = true, message });
+        }
+
+        TempData["Success"] = message;
+        return RedirectToAction(nameof(Index));
+    }
+
+    private bool WantsJson()
+    {
+        var request = ControllerContext?.HttpContext?.Request;
+        if (request is null)
+        {
+            return false;
+        }
+
+        if (string.Equals(request.Headers["X-Requested-With"], "XMLHttpRequest", StringComparison.OrdinalIgnoreCase))
+        {
+            return true;
+        }
+
+        var accept = request.Headers.Accept.ToString();
+        return accept.Contains("application/json", StringComparison.OrdinalIgnoreCase);
+    }
     private async Task DepartmentsAsync()
     {
         ViewBag.Departments = await _db.Departments

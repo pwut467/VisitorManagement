@@ -25,10 +25,8 @@ public class BlacklistController : Controller
         return View(list);
     }
 
-    [Authorize(Roles = AppRoles.Admin)]
     public IActionResult Create() => View(new BlacklistFormViewModel());
 
-    [Authorize(Roles = AppRoles.Admin)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Create(BlacklistFormViewModel model)
@@ -53,7 +51,6 @@ public class BlacklistController : Controller
         return RedirectToAction(nameof(Index));
     }
 
-    [Authorize(Roles = AppRoles.Admin)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Toggle(int id)
@@ -66,6 +63,24 @@ public class BlacklistController : Controller
 
         item.IsActive = !item.IsActive;
         await _db.SaveChangesAsync();
+        TempData["Success"] = item.IsActive ? "เปิดใช้งานรายการบัญชีดำแล้ว" : "ปิดใช้งานรายการบัญชีดำแล้ว";
+        return RedirectToAction(nameof(Index));
+    }
+
+    [Authorize(Roles = AppRoles.Admin)]
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> Delete(int id)
+    {
+        var item = await _db.BlacklistEntries.FindAsync(id);
+        if (item is null)
+        {
+            return NotFound();
+        }
+
+        _db.BlacklistEntries.Remove(item);
+        await _db.SaveChangesAsync();
+        TempData["Success"] = $"ลบบัญชีดำ {item.FullName} แล้ว";
         return RedirectToAction(nameof(Index));
     }
 }
