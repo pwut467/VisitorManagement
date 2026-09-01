@@ -57,7 +57,7 @@ Check-out
 ## โครงสร้างข้อมูลหลัก
 
 - **Visitor** — โปรไฟล์คน (เลขบัตรไม่ซ้ำ) ใช้ซ้ำได้ทุกครั้งที่มา
-- **Visit** — แต่ละรอบเข้า-ออก (`VyyyyMMdd-0001`) สถานะ PreRegistered / CheckedIn / CheckedOut / Cancelled / Denied
+- **Visit** — แต่ละรอบเข้า-ออก (`SKNY260901-001` = รหัสบริษัท+yyMMdd-ลำดับ) สถานะ PreRegistered / CheckedIn / CheckedOut / Cancelled / Denied
 - **Employee, Department, Gate, VisitorType, VisitPurpose** — ข้อมูลหลัก
 - **BlacklistEntry, AuditLog, CompanyProfile** — ความปลอดภัยและการตั้งค่าบัตร
 

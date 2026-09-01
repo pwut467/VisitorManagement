@@ -46,8 +46,8 @@ public class VisitNumberServiceTests
         db.Visits.Add(MinimalVisit(db, first, company));
         await db.SaveChangesAsync();
         var second = await svc.NextAsync(day, company.Id, company.CompanyCode);
-        Assert.Equal("SKNY-V20260824-0001", first);
-        Assert.Equal("SKNY-V20260824-0002", second);
+        Assert.Equal("SKNY260824-001", first);
+        Assert.Equal("SKNY260824-002", second);
     }
 
     private static Visit MinimalVisit(AppDbContext db, string number, CompanyProfile company)
@@ -123,7 +123,8 @@ public class VisitRegistrationServiceTests
         Assert.Null(stored.Email);
         Assert.Null(stored.DateOfBirth);
         Assert.NotNull(result.Visit.CheckInAt);
-        Assert.StartsWith("SKNY-V", result.Visit.VisitNumber);
+        Assert.StartsWith("SKNY", result.Visit.VisitNumber);
+        Assert.Matches(@"^SKNY\d{6}-\d{3}$", result.Visit.VisitNumber);
 
         var outResult = await svc.CheckOutAsync(result.Visit.VisitCode, db.Gates.First().Id, "user-1", null);
         Assert.True(outResult.Succeeded, outResult.Error);
