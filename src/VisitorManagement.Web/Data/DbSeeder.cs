@@ -7,7 +7,11 @@ namespace VisitorManagement.Web.Data;
 
 public static class DbSeeder
 {
-    private static readonly string[] OfficialUserNames = ["SKAdmin", "9641"];
+    /// <summary>One-shot employee demo seed watermark.</summary>
+    private const int EmployeesSeedRevision = 3;
+
+    /// <summary>One-shot master-data / blacklist seed watermark. After this, empty tables stay empty.</summary>
+    private const int CatalogSeedRevision = 4;
 
     public static async Task SeedAsync(IServiceProvider services)
     {
@@ -111,115 +115,22 @@ public static class DbSeeder
             }
         }
 
-        if (!await db.Departments.AnyAsync())
-        {
-            db.Departments.AddRange(
-                new Department { Code = "HR", Name = "ทรัพยากรบุคคล" },
-                new Department { Code = "IT", Name = "เทคโนโลยีสารสนเทศ" },
-                new Department { Code = "OP", Name = "ปฏิบัติการ" },
-                new Department { Code = "SA", Name = "ขายและการตลาด" },
-                new Department { Code = "FN", Name = "การเงิน" });
-            await db.SaveChangesAsync();
-        }
-
-        if (!await db.Gates.AnyAsync())
-        {
-            db.Gates.AddRange(
-                new Gate { Name = "ประตูใหญ่", Location = "Lobby ชั้น 1" },
-                new Gate { Name = "ประตูพนักงาน", Location = "ด้านข้างอาคาร" },
-                new Gate { Name = "ประตูขนส่ง", Location = "Loading dock" });
-        }
-
-        if (!await db.VisitorTypes.AnyAsync())
-        {
-            db.VisitorTypes.AddRange(
-                 new VisitorType { Name = "ผู้รับเหมา", BadgeLabel = "CONTRACTOR", Color = "#b45309", RequiresEscortDefault = true },
-                new VisitorType { Name = "ลูกค้า / คู่ค้า", BadgeLabel = "GUEST", Color = "#1a56a0" },               
-                new VisitorType { Name = "ส่งของ / ขนส่ง", BadgeLabel = "DELIVERY", Color = "#0f766e" },
-                new VisitorType { Name = "สัมภาษณ์งาน", BadgeLabel = "INTERVIEW", Color = "#6d28d9" },
-                new VisitorType { Name = "หน่วยงานราชการ", BadgeLabel = "OFFICIAL", Color = "#9f1239" },
-                new VisitorType { Name = "อื่นๆ", BadgeLabel = "VISITOR", Color = "#334155" });
-        }
-
-        if (!await db.VisitPurposes.AnyAsync())
-        {
-            db.VisitPurposes.AddRange(
-                 new VisitPurpose { Name = "ซื้อหิน" },
-                new VisitPurpose { Name = "ประชุม / หารืองาน" },
-                new VisitPurpose { Name = "ส่งเอกสาร / ส่งของ" },
-                new VisitPurpose { Name = "ซ่อมบำรุง / ติดตั้ง" },
-                new VisitPurpose { Name = "สัมภาษณ์งาน" },
-                new VisitPurpose { Name = "เยี่ยมชมโรงงาน / สำนักงาน" },
-                new VisitPurpose { Name = "อื่นๆ" });
-        }
-
-        await db.SaveChangesAsync();
-
-        await SeedDemoEmployeesOnceAsync(db);
-
-        await ResetUsersAsync(db, userManager);
         await ClearVisitorRecordsOnceAsync(db);
 
-        if (!await db.BlacklistEntries.AnyAsync())
-        {
-            db.BlacklistEntries.Add(new BlacklistEntry
-            {
-                NationalId = "1234567890121",
-                FullName = "นาย ไม่พึงประสงค์ ตัวอย่าง",
-                Reason = "เคยฝ่าฝืนระเบียบความปลอดภัยของบริษัท",
-                CreatedAt = TimeHelper.Now,
-                IsActive = true
-            });
-            await db.SaveChangesAsync();
-        }
+        // Employees before catalog watermark bump so rev 3 still runs on fresh DBs.
+        await SeedDemoEmployeesOnceAsync(db);
+        await SeedInitialCatalogOnceAsync(db);
+
+        await EnsureOfficialUsersAsync(userManager);
     }
 
-    private static async Task ResetUsersAsync(AppDbContext db, UserManager<ApplicationUser> userManager)
+    /// <summary>
+    /// Ensures SKAdmin / 9641 exist with the correct exclusive roles.
+    /// Does not delete other users or overwrite FullName / IsActive on existing accounts.
+    /// </summary>
+    private static async Task EnsureOfficialUsersAsync(UserManager<ApplicationUser> userManager)
     {
         const string defaultPassword = "123456";
-        var keepNames = new HashSet<string>(OfficialUserNames, StringComparer.OrdinalIgnoreCase);
-        var leftover = (await userManager.Users.ToListAsync())
-            .Where(user => user.UserName is null || !keepNames.Contains(user.UserName))
-            .ToList();
-
-        if (leftover.Count > 0)
-        {
-            var leftoverIds = leftover.Select(user => user.Id).ToHashSet();
-            foreach (var emp in await db.Employees.Where(e => e.UserId != null).ToListAsync())
-            {
-                if (emp.UserId is not null && leftoverIds.Contains(emp.UserId))
-                {
-                    emp.UserId = null;
-                }
-            }
-
-            foreach (var visit in await db.Visits
-                         .Where(v => v.RegisteredByUserId != null || v.CheckedOutByUserId != null)
-                         .ToListAsync())
-            {
-                if (visit.RegisteredByUserId is not null && leftoverIds.Contains(visit.RegisteredByUserId))
-                {
-                    visit.RegisteredByUserId = null;
-                }
-
-                if (visit.CheckedOutByUserId is not null && leftoverIds.Contains(visit.CheckedOutByUserId))
-                {
-                    visit.CheckedOutByUserId = null;
-                }
-            }
-
-            await db.SaveChangesAsync();
-
-            foreach (var user in leftover)
-            {
-                var result = await userManager.DeleteAsync(user);
-                if (!result.Succeeded)
-                {
-                    throw new InvalidOperationException(string.Join("; ", result.Errors.Select(e => e.Description)));
-                }
-            }
-        }
-
         await EnsureUserAsync(userManager, "SKAdmin", defaultPassword, "ผู้ดูแลระบบ", AppRoles.Admin);
         await EnsureUserAsync(userManager, "9641", defaultPassword, "รปภ.", AppRoles.Security);
     }
@@ -230,17 +141,19 @@ public static class DbSeeder
     /// </summary>
     private static async Task SeedDemoEmployeesOnceAsync(AppDbContext db)
     {
-        const int employeesSeedRevision = 3;
         var companies = await db.CompanyProfiles.OrderBy(c => c.Id).ToListAsync();
         if (companies.Count == 0)
         {
             return;
         }
 
-        if (companies.Any(c => c.SeedRevision >= employeesSeedRevision))
+        if (companies.Any(c => c.SeedRevision >= EmployeesSeedRevision))
         {
             return;
         }
+
+        // Departments are required for demo employees.
+        await SeedCatalogTablesIfEmptyAsync(db);
 
         if (!await db.Employees.AnyAsync())
         {
@@ -259,13 +172,111 @@ public static class DbSeeder
 
         foreach (var company in companies)
         {
-            if (company.SeedRevision < employeesSeedRevision)
+            if (company.SeedRevision < EmployeesSeedRevision)
             {
-                company.SeedRevision = employeesSeedRevision;
+                company.SeedRevision = EmployeesSeedRevision;
             }
         }
 
         await db.SaveChangesAsync();
+    }
+
+    /// <summary>
+    /// Seeds departments / gates / types / purposes / sample blacklist only once.
+    /// After SeedRevision &gt;= 4, empty tables stay empty (user deletions persist across restarts).
+    /// </summary>
+    private static async Task SeedInitialCatalogOnceAsync(AppDbContext db)
+    {
+        var companies = await db.CompanyProfiles.OrderBy(c => c.Id).ToListAsync();
+        if (companies.Count == 0)
+        {
+            return;
+        }
+
+        if (companies.Any(c => c.SeedRevision >= CatalogSeedRevision))
+        {
+            return;
+        }
+
+        await SeedCatalogTablesIfEmptyAsync(db);
+
+        foreach (var company in companies)
+        {
+            if (company.SeedRevision < CatalogSeedRevision)
+            {
+                company.SeedRevision = CatalogSeedRevision;
+            }
+        }
+
+        await db.SaveChangesAsync();
+    }
+
+    private static async Task SeedCatalogTablesIfEmptyAsync(AppDbContext db)
+    {
+        var dirty = false;
+
+        if (!await db.Departments.AnyAsync())
+        {
+            db.Departments.AddRange(
+                new Department { Code = "HR", Name = "ทรัพยากรบุคคล" },
+                new Department { Code = "IT", Name = "เทคโนโลยีสารสนเทศ" },
+                new Department { Code = "OP", Name = "ปฏิบัติการ" },
+                new Department { Code = "SA", Name = "ขายและการตลาด" },
+                new Department { Code = "FN", Name = "การเงิน" });
+            dirty = true;
+        }
+
+        if (!await db.Gates.AnyAsync())
+        {
+            db.Gates.AddRange(
+                new Gate { Name = "ประตูใหญ่", Location = "Lobby ชั้น 1" },
+                new Gate { Name = "ประตูพนักงาน", Location = "ด้านข้างอาคาร" },
+                new Gate { Name = "ประตูขนส่ง", Location = "Loading dock" });
+            dirty = true;
+        }
+
+        if (!await db.VisitorTypes.AnyAsync())
+        {
+            db.VisitorTypes.AddRange(
+                new VisitorType { Name = "ผู้รับเหมา", BadgeLabel = "CONTRACTOR", Color = "#b45309", RequiresEscortDefault = true },
+                new VisitorType { Name = "ลูกค้า / คู่ค้า", BadgeLabel = "GUEST", Color = "#1a56a0" },
+                new VisitorType { Name = "ส่งของ / ขนส่ง", BadgeLabel = "DELIVERY", Color = "#0f766e" },
+                new VisitorType { Name = "สัมภาษณ์งาน", BadgeLabel = "INTERVIEW", Color = "#6d28d9" },
+                new VisitorType { Name = "หน่วยงานราชการ", BadgeLabel = "OFFICIAL", Color = "#9f1239" },
+                new VisitorType { Name = "อื่นๆ", BadgeLabel = "VISITOR", Color = "#334155" });
+            dirty = true;
+        }
+
+        if (!await db.VisitPurposes.AnyAsync())
+        {
+            db.VisitPurposes.AddRange(
+                new VisitPurpose { Name = "ซื้อหิน" },
+                new VisitPurpose { Name = "ประชุม / หารืองาน" },
+                new VisitPurpose { Name = "ส่งเอกสาร / ส่งของ" },
+                new VisitPurpose { Name = "ซ่อมบำรุง / ติดตั้ง" },
+                new VisitPurpose { Name = "สัมภาษณ์งาน" },
+                new VisitPurpose { Name = "เยี่ยมชมโรงงาน / สำนักงาน" },
+                new VisitPurpose { Name = "อื่นๆ" });
+            dirty = true;
+        }
+
+        if (!await db.BlacklistEntries.AnyAsync())
+        {
+            db.BlacklistEntries.Add(new BlacklistEntry
+            {
+                NationalId = "1234567890121",
+                FullName = "นาย ไม่พึงประสงค์ ตัวอย่าง",
+                Reason = "เคยฝ่าฝืนระเบียบความปลอดภัยของบริษัท",
+                CreatedAt = TimeHelper.Now,
+                IsActive = true
+            });
+            dirty = true;
+        }
+
+        if (dirty)
+        {
+            await db.SaveChangesAsync();
+        }
     }
 
     private static async Task ClearVisitorRecordsOnceAsync(AppDbContext db)
@@ -330,12 +341,7 @@ public static class DbSeeder
                 throw new InvalidOperationException(string.Join("; ", result.Errors.Select(e => e.Description)));
             }
         }
-        else
-        {
-            user.FullName = fullName;
-            user.IsActive = true;
-            await userManager.UpdateAsync(user);
-        }
+        // Existing users: keep FullName / IsActive as edited by admins; only enforce role.
 
         await EnsureExclusiveRoleAsync(userManager, user, role);
     }
