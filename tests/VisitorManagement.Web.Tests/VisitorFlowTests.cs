@@ -27,6 +27,8 @@ public class ThaiNationalIdTests
         Assert.Equal("3-xxxx-xxxxx-45-2", ThaiNationalId.Mask("3101700123452"));
         Assert.Equal("1-xxxx-xxxxx-78-0", ThaiNationalId.Mask("1103700156780"));
         Assert.Equal("3-xxxx-xxxxx-45-2", ThaiNationalId.Mask("3-1017-00123-45-2"));
+        Assert.Equal("3-1017-00123-45-2", ThaiNationalId.Format("3101700123452"));
+        Assert.Equal("1-1037-00156-78-0", ThaiNationalId.Format("1103700156780"));
     }
 }
 
@@ -44,8 +46,8 @@ public class VisitNumberServiceTests
         db.Visits.Add(MinimalVisit(db, first, company));
         await db.SaveChangesAsync();
         var second = await svc.NextAsync(day, company.Id, company.CompanyCode);
-        Assert.Equal("SKNY-V20260824-0001", first);
-        Assert.Equal("SKNY-V20260824-0002", second);
+        Assert.Equal("SKNY260824-001", first);
+        Assert.Equal("SKNY260824-002", second);
     }
 
     private static Visit MinimalVisit(AppDbContext db, string number, CompanyProfile company)
@@ -121,7 +123,8 @@ public class VisitRegistrationServiceTests
         Assert.Null(stored.Email);
         Assert.Null(stored.DateOfBirth);
         Assert.NotNull(result.Visit.CheckInAt);
-        Assert.StartsWith("SKNY-V", result.Visit.VisitNumber);
+        Assert.StartsWith("SKNY", result.Visit.VisitNumber);
+        Assert.Matches(@"^SKNY\d{6}-\d{3}$", result.Visit.VisitNumber);
 
         var outResult = await svc.CheckOutAsync(result.Visit.VisitCode, db.Gates.First().Id, "user-1", null);
         Assert.True(outResult.Succeeded, outResult.Error);

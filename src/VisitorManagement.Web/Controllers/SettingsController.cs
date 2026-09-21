@@ -70,6 +70,7 @@ public class SettingsController : Controller
             return View(model);
         }
 
+        var previousCode = c.CompanyCode;
         c.CompanyCode = code;
         c.Name = model.Name.Trim();
         c.Address = model.Address?.Trim();

@@ -9,7 +9,7 @@ namespace VisitorManagement.Web.Tests;
 public class DbSeederTests
 {
     [Fact]
-    public async Task SeedAsyncReplacesUsersWithOfficialAccounts()
+    public async Task SeedAsyncCreatesOfficialAccounts()
     {
         var provider = CreateIdentityServices();
         await DbSeeder.SeedAsync(provider);
@@ -20,6 +20,7 @@ public class DbSeederTests
 
         Assert.Equal(5, await db.Employees.CountAsync());
         Assert.Equal(2, await users.Users.CountAsync());
+        Assert.True(await db.CompanyProfiles.AllAsync(c => c.SeedRevision >= 4));
 
         var admin = await users.FindByNameAsync("SKAdmin");
         var security = await users.FindByNameAsync("9641");
@@ -29,10 +30,141 @@ public class DbSeederTests
         Assert.True(await users.CheckPasswordAsync(security, "123456"));
         Assert.True(await users.IsInRoleAsync(admin, AppRoles.Admin));
         Assert.True(await users.IsInRoleAsync(security, AppRoles.Security));
-        Assert.Null(await users.FindByNameAsync("admin@company.local"));
+        Assert.False(await users.IsInRoleAsync(security, AppRoles.Admin));
+        Assert.Equal(new[] { AppRoles.Security }, (await users.GetRolesAsync(security)).OrderBy(r => r).ToArray());
+        Assert.Equal(new[] { AppRoles.Admin }, (await users.GetRolesAsync(admin)).OrderBy(r => r).ToArray());
         Assert.True(await db.Employees.AllAsync(e => e.UserId == null));
         Assert.Equal(0, await db.Visits.CountAsync());
         Assert.Equal(0, await db.Visitors.CountAsync());
+    }
+
+    [Fact]
+    public async Task SeedAsync_DoesNotRecreateEmployeesAfterUserDeletedThem()
+    {
+        var provider = CreateIdentityServices();
+        await DbSeeder.SeedAsync(provider);
+
+        using (var scope = provider.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+            Assert.Equal(5, await db.Employees.CountAsync());
+            db.Employees.RemoveRange(db.Employees);
+            await db.SaveChangesAsync();
+            Assert.Equal(0, await db.Employees.CountAsync());
+        }
+
+        await DbSeeder.SeedAsync(provider);
+
+        using (var scope = provider.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+            Assert.Equal(0, await db.Employees.CountAsync());
+            Assert.True(await db.CompanyProfiles.AllAsync(c => c.SeedRevision >= 4));
+        }
+    }
+
+    [Fact]
+    public async Task SeedAsync_DoesNotRecreateCatalogAfterUserDeletedThem()
+    {
+        var provider = CreateIdentityServices();
+        await DbSeeder.SeedAsync(provider);
+
+        using (var scope = provider.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+            Assert.True(await db.Departments.CountAsync() > 0);
+            db.Employees.RemoveRange(db.Employees);
+            db.Departments.RemoveRange(db.Departments);
+            db.Gates.RemoveRange(db.Gates);
+            db.VisitorTypes.RemoveRange(db.VisitorTypes);
+            db.VisitPurposes.RemoveRange(db.VisitPurposes);
+            db.BlacklistEntries.RemoveRange(db.BlacklistEntries);
+            await db.SaveChangesAsync();
+        }
+
+        await DbSeeder.SeedAsync(provider);
+
+        using (var scope = provider.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+            Assert.Equal(0, await db.Departments.CountAsync());
+            Assert.Equal(0, await db.Gates.CountAsync());
+            Assert.Equal(0, await db.VisitorTypes.CountAsync());
+            Assert.Equal(0, await db.VisitPurposes.CountAsync());
+            Assert.Equal(0, await db.BlacklistEntries.CountAsync());
+            Assert.True(await db.CompanyProfiles.AllAsync(c => c.SeedRevision >= 4));
+        }
+    }
+
+    [Fact]
+    public async Task SeedAsync_KeepsRenamedCatalogAndUserEdits()
+    {
+        var provider = CreateIdentityServices();
+        await DbSeeder.SeedAsync(provider);
+
+        using (var scope = provider.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+            var users = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+
+            var dept = await db.Departments.FirstAsync(d => d.Code == "HR");
+            dept.Name = "ฝ่ายบุคคล (แก้ไขแล้ว)";
+            var gate = await db.Gates.FirstAsync();
+            gate.Name = "ประตูทดสอบ";
+            await db.SaveChangesAsync();
+
+            var admin = await users.FindByNameAsync("SKAdmin");
+            Assert.NotNull(admin);
+            admin.FullName = "แอดมินที่แก้ชื่อแล้ว";
+            admin.IsActive = false;
+            await users.UpdateAsync(admin);
+        }
+
+        await DbSeeder.SeedAsync(provider);
+
+        using (var scope = provider.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+            var users = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+
+            Assert.Equal("ฝ่ายบุคคล (แก้ไขแล้ว)", (await db.Departments.FirstAsync(d => d.Code == "HR")).Name);
+            Assert.Contains(await db.Gates.ToListAsync(), g => g.Name == "ประตูทดสอบ");
+
+            var admin = await users.FindByNameAsync("SKAdmin");
+            Assert.NotNull(admin);
+            Assert.Equal("แอดมินที่แก้ชื่อแล้ว", admin.FullName);
+            Assert.False(admin.IsActive);
+            Assert.True(await users.IsInRoleAsync(admin, AppRoles.Admin));
+        }
+    }
+
+    [Fact]
+    public async Task SeedAsyncStripsExtraRolesFromSecurityUser()
+    {
+        var provider = CreateIdentityServices();
+        await DbSeeder.SeedAsync(provider);
+
+        using (var scope = provider.CreateScope())
+        {
+            var users = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+            var security = await users.FindByNameAsync("9641");
+            Assert.NotNull(security);
+            await users.AddToRoleAsync(security, AppRoles.Admin);
+            await users.AddToRoleAsync(security, AppRoles.Reception);
+            Assert.True(await users.IsInRoleAsync(security, AppRoles.Admin));
+        }
+
+        await DbSeeder.SeedAsync(provider);
+
+        using (var scope = provider.CreateScope())
+        {
+            var users = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+            var security = await users.FindByNameAsync("9641");
+            Assert.NotNull(security);
+            var roles = await users.GetRolesAsync(security);
+            Assert.Equal(new[] { AppRoles.Security }, roles.OrderBy(r => r).ToArray());
+            Assert.False(await users.IsInRoleAsync(security, AppRoles.Admin));
+        }
     }
 
     [Fact]
@@ -74,7 +206,7 @@ public class DbSeederTests
     }
 
     [Fact]
-    public async Task SeedAsyncRemovesLeftoverDemoUsersOnly()
+    public async Task SeedAsyncPreservesCustomUsers()
     {
         var provider = CreateIdentityServices();
         using (var scope = provider.CreateScope())
@@ -99,10 +231,10 @@ public class DbSeederTests
         using (var scope = provider.CreateScope())
         {
             var users = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
-            Assert.Null(await users.FindByNameAsync("admin@company.local"));
+            Assert.NotNull(await users.FindByNameAsync("admin@company.local"));
             Assert.NotNull(await users.FindByNameAsync("SKAdmin"));
             Assert.NotNull(await users.FindByNameAsync("9641"));
-            Assert.Equal(2, await users.Users.CountAsync());
+            Assert.Equal(3, await users.Users.CountAsync());
         }
     }
 

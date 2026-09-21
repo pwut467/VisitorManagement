@@ -42,4 +42,15 @@ public static class ThaiNationalId
 
         return $"{id[0]}-xxxx-xxxxx-{id[10]}{id[11]}-{id[12]}";
     }
+
+    public static string Format(string? value)
+    {
+        var id = Normalize(value);
+        if (id.Length != 13)
+        {
+            return value ?? string.Empty;
+        }
+
+        return $"{id[0]}-{id[1..5]}-{id[5..10]}-{id[10..12]}-{id[12]}";
+    }
 }

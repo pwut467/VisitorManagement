@@ -31,7 +31,7 @@ public static class Code128Barcode
     private const int StartB = 104;
     private const int Stop = 106;
 
-    public static string Svg(string value, int barHeight = 36, int module = 2)
+    public static string Svg(string value, int barHeight = 36, int module = 2, bool includeLabel = true)
     {
         if (string.IsNullOrWhiteSpace(value))
         {
@@ -49,11 +49,12 @@ public static class Code128Barcode
             }
         }
 
-        var textHeight = 14;
-        var height = barHeight + textHeight + 6;
+        var textHeight = includeLabel ? 14 : 0;
+        var height = barHeight + textHeight + (includeLabel ? 6 : 4);
         var sb = new StringBuilder();
+        // preserveAspectRatio keeps module widths proportional when CSS scales the SVG for 80mm badges.
         sb.Append(CultureInfo.InvariantCulture,
-            $"<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"{width}\" height=\"{height}\" viewBox=\"0 0 {width} {height}\" role=\"img\" aria-label=\"barcode {WebUtility.HtmlEncode(value)}\">");
+            $"<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"{width}\" height=\"{height}\" viewBox=\"0 0 {width} {height}\" preserveAspectRatio=\"xMidYMid meet\" role=\"img\" aria-label=\"barcode {WebUtility.HtmlEncode(value)}\">");
         sb.Append("<rect width=\"100%\" height=\"100%\" fill=\"#fff\"/>");
 
         var x = quiet;
@@ -73,9 +74,13 @@ public static class Code128Barcode
             }
         }
 
-        var label = WebUtility.HtmlEncode(value);
-        sb.Append(CultureInfo.InvariantCulture,
-            $"<text x=\"{width / 2}\" y=\"{barHeight + 12}\" text-anchor=\"middle\" font-family=\"monospace\" font-size=\"11\">{label}</text>");
+        if (includeLabel)
+        {
+            var label = WebUtility.HtmlEncode(value);
+            sb.Append(CultureInfo.InvariantCulture,
+                $"<text x=\"{width / 2}\" y=\"{barHeight + 12}\" text-anchor=\"middle\" font-family=\"monospace\" font-size=\"11\">{label}</text>");
+        }
+
         sb.Append("</svg>");
         return sb.ToString();
     }

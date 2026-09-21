@@ -2,6 +2,15 @@
   "profiles": {
     "CardReader": {
       "commandName": "Project",
+      "commandLineArgs": "",
+      "applicationUrl": "http://127.0.0.1:5001",
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Production",
+        "DOTNET_FORCE_SYSTEM_CONSOLE": "1"
+      }
+    },
+    "CardReader Tray (Windows)": {
+      "commandName": "Project",
       "applicationUrl": "http://127.0.0.1:5001",
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Production"

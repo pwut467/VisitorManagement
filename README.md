@@ -50,14 +50,14 @@ Check-out
 
 | Role | ความสามารถ |
 |---|---|
-| **Security / Reception** | Check-in, พิมพ์บัตร, Check-out, ดูคนในพื้นที่, รายงาน, ดูบัญชีดำ |
+| **Security / Reception** | Check-in, พิมพ์บัตร, Check-out, ดูคนในพื้นที่, รายงาน, เพิ่ม/สลับสถานะบัญชีดำ |
 | **Host** | ลงทะเบียนล่วงหน้าให้แขกของตัวเอง |
-| **Admin** | ทั้งหมด + พนักงาน, ข้อมูลหลัก, ผู้ใช้, ตั้งค่าบริษัท, จัดการบัญชีดำ |
+| **Admin** | ทั้งหมด + พนักงาน, ข้อมูลหลัก, ผู้ใช้, ตั้งค่าบริษัท, **ลบบัญชีดำ** |
 
 ## โครงสร้างข้อมูลหลัก
 
 - **Visitor** — โปรไฟล์คน (เลขบัตรไม่ซ้ำ) ใช้ซ้ำได้ทุกครั้งที่มา
-- **Visit** — แต่ละรอบเข้า-ออก (`VyyyyMMdd-0001`) สถานะ PreRegistered / CheckedIn / CheckedOut / Cancelled / Denied
+- **Visit** — แต่ละรอบเข้า-ออก (`SKNY260901-001` = รหัสบริษัท+yyMMdd-ลำดับ) สถานะ PreRegistered / CheckedIn / CheckedOut / Cancelled / Denied
 - **Employee, Department, Gate, VisitorType, VisitPurpose** — ข้อมูลหลัก
 - **BlacklistEntry, AuditLog, CompanyProfile** — ความปลอดภัยและการตั้งค่าบัตร
 
@@ -75,7 +75,7 @@ QR บนบัตรมี payload `VISIT|{VisitCode}` เพื่อให้
 ค่าเริ่มต้นชี้ไปที่ instance **SQLEXPRESS** ชื่อฐาน **VisitorManagment**
 
 ```
-Server=.\SQLEXPRESS;Database=VisitorManagment;Trusted_Connection=True;TrustServerCertificate=True;MultipleActiveResultSets=True
+Server=localhost\SQLEXPRESS;Database=VisitorManagment;Trusted_Connection=True;TrustServerCertificate=True;MultipleActiveResultSets=True
 ```
 
 รอบแรกที่เปิดแอป ระบบจะ:
@@ -93,7 +93,7 @@ dotnet ef database update --project src/VisitorManagement.Web
 ถ้าใช้ SQL Authentication แทน Windows Auth ให้เปลี่ยน connection string เป็น:
 
 ```
-Server=.\SQLEXPRESS;Database=VisitorManagment;User Id=sa;Password=รหัสผ่านของคุณ;TrustServerCertificate=True;MultipleActiveResultSets=True
+Server=localhost\SQLEXPRESS;Database=VisitorManagment;User Id=sa;Password=รหัสผ่านของคุณ;TrustServerCertificate=True;MultipleActiveResultSets=True
 ```
 
 สคริปต์ SQL สำรองอยู่ที่ `src/VisitorManagement.Web/Data/Migrations/VisitorManagment.sql` (เปิดใน SSMS แล้วรันบน SQLEXPRESS ได้)
@@ -121,12 +121,68 @@ dotnet run
 
 ต้องมี SQL Server Express รันอยู่ และบัญชี Windows (หรือ sa) มีสิทธิ์สร้างฐานข้อมูล
 
+### รันบนเครื่องอื่นแล้วสร้าง DB ไม่สำเร็จ / HTTP 500.30
+
+`HTTP Error 500.30 - ASP.NET Core app failed to start` เกิดเมื่อแอป crash ตอนสตาร์ท — สาเหตุที่พบบ่อยคือเชื่อม SQL ไม่ได้ (`CREATE DATABASE [VisitorManagment]` ล้มเหลว)
+
+เวอร์ชันล่าสุดจะ**ไม่ crash** แต่พาไปหน้า `/Home/Database` อธิบายวิธีแก้ และเขียนไฟล์ `logs/startup-error.txt`
+
+#### สาเหตุ: `No process is on the other end of the pipe` (แม้ติดตั้ง Express + สร้าง DB แล้ว)
+
+แปลว่าแอปยัง**ต่อเข้า instance ไม่ได้** (คนละเรื่องกับการมีไฟล์ฐานข้อมูล) — พบบ่อยเมื่อใช้ `Server=.\SQLEXPRESS` แล้ว Named Pipes มีปัญหา หรือบริการหยุด
+
+1. `services.msc` → **SQL Server (SQLEXPRESS)** ต้องเป็น **Running** (Restart ครั้งหนึ่ง)
+2. **SQL Server Configuration Manager** → Protocols for SQLEXPRESS → เปิด **TCP/IP** + **Named Pipes** → Restart บริการ
+3. สร้าง `appsettings.Local.json` ข้าง `VisitorManagement.Web.dll`:
+
+```json
+{
+  "ConnectionStrings": {
+    "SqlServer": "Server=localhost\\SQLEXPRESS;Database=VisitorManagment;Trusted_Connection=True;TrustServerCertificate=True;MultipleActiveResultSets=True"
+  }
+}
+```
+
+4. ชื่อฐานต้องตรง: **`VisitorManagment`** (สะกดตามโปรเจกต์)
+5. ถ้าเป็น **IIS** ใช้ SQL Auth แทน Trusted_Connection:
+   `Server=localhost\SQLEXPRESS;Database=VisitorManagment;User Id=sa;Password=...;TrustServerCertificate=True;MultipleActiveResultSets=True`
+6. ทดสอบด้วย `.\scripts\test-sql-connection.ps1` หรือ SSMS ด้วย connection string ชุดเดียวกัน แล้วรีสตาร์ท App Pool
+
+#### ขั้นตอนทั่วไป
+
+1. ตรวจว่า SQL Server / Express / LocalDB ติดตั้งและบริการทำงาน
+2. คัดลอกไฟล์ตั้งค่าเฉพาะเครื่อง (วางข้าง `VisitorManagement.Web.dll` หลัง publish):
+
+```bash
+cp src/VisitorManagement.Web/appsettings.Local.json.example src/VisitorManagement.Web/appsettings.Local.json
+```
+
+แล้วแก้ `ConnectionStrings:SqlServer` ให้ตรง instance จริง เช่น
+
+```
+Server=.\SQLEXPRESS;Database=VisitorManagment;Trusted_Connection=True;TrustServerCertificate=True;MultipleActiveResultSets=True
+Server=(localdb)\MSSQLLocalDB;Database=VisitorManagment;Trusted_Connection=True;TrustServerCertificate=True;MultipleActiveResultSets=True
+Server=localhost;Database=VisitorManagment;Trusted_Connection=True;TrustServerCertificate=True;MultipleActiveResultSets=True
+Server=localhost,1433;Database=VisitorManagment;User Id=sa;Password=Your_password123;TrustServerCertificate=True;MultipleActiveResultSets=True
+```
+
+3. **IIS:** App Pool มักไม่ใช้บัญชี Windows ของคุณ — `Trusted_Connection` มักล้มเหลว ให้ใช้ **SQL Auth** (`User Id` / `Password`) หรือให้สิทธิ์ `IIS APPPOOL\ชื่อพูล` บน SQL
+4. สร้างฐาน `VisitorManagment` ใน SSMS ก่อน แล้วให้บัญชีที่รันแอปเป็น `db_owner`
+5. Docker: `docker compose up -d` แล้วใช้ connection string พอร์ต `1433`
+6. เปิด `logs\stdout_*.log` (web.config เปิด stdout ไว้แล้ว) หรือ Event Viewer → Windows Logs → Application
+
+หรือตั้งผ่าน environment variable / IIS Configuration Editor:
+
+```
+ConnectionStrings__SqlServer=Server=.\SQLEXPRESS;Database=VisitorManagment;User Id=sa;Password=...;TrustServerCertificate=True;MultipleActiveResultSets=True
+```
+
 ### บัญชีเริ่มต้น
 
 | ชื่อผู้ใช้ | รหัสผ่าน | สิทธิ์ |
 |---|---|---|
 | `SKAdmin` | `123456` | Admin |
-| `9641` | `123456` | Security |
+| `9641` | `123456` | Security เท่านั้น (ไม่มี Admin) |
 
 เปิดแอปครั้งแรกจะล้างผู้ใช้เดิมทั้งหมด แล้วสร้างสองบัญชีนี้ (รหัสผ่านทุกบัญชีเป็น `123456`)
 
@@ -156,6 +212,16 @@ dotnet run --project src/VisitorManagement.CardReader
 ```
 
 หรือดับเบิลคลิก `src/VisitorManagement.CardReader/start-card-reader.bat`
+
+บน Windows โปรแกรมจะ**ย่อใน System Tray** (คลิกขวาไอคอนเพื่อดูสถานะหรือออก)
+
+Publish ไปเครื่องอื่น:
+
+```bash
+dotnet publish src/VisitorManagement.CardReader -c Release -o ./publish
+```
+
+หรือใช้ `src/VisitorManagement.CardReader/publish-card-reader.bat` / Visual Studio Publish (โปรไฟล์ FolderProfile)
 
 โปรแกรมจะฟังที่ `http://127.0.0.1:5001`
 

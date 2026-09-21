@@ -1,0 +1,77 @@
+@model UserFormViewModel
+@{
+    var isEdit = !string.IsNullOrEmpty(Model.Id);
+    ViewData["Title"] = isEdit ? "แก้ไขผู้ใช้" : "เพิ่มผู้ใช้";
+    var action = isEdit ? "Edit" : "Create";
+}
+<div class="card vm-card p-4" style="max-width:640px">
+    <form asp-action="@action" method="post">
+        <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+        <input type="hidden" asp-for="Id" />
+        <input type="hidden" asp-for="IsOfficialAccount" />
+        <input type="hidden" asp-for="RoleLocked" />
+
+        <div class="mb-3">
+            <label asp-for="FullName" class="form-label"></label>
+            <input asp-for="FullName" class="form-control" autofocus />
+            <span asp-validation-for="FullName" class="text-danger"></span>
+        </div>
+        <div class="mb-3">
+            <label asp-for="UserName" class="form-label"></label>
+            @if (Model.IsOfficialAccount)
+            {
+                <input asp-for="UserName" class="form-control" autocomplete="username" readonly />
+                <div class="form-text">บัญชีระบบ ไม่สามารถเปลี่ยนชื่อผู้ใช้ได้</div>
+            }
+            else
+            {
+                <input asp-for="UserName" class="form-control" autocomplete="username" />
+            }
+            <span asp-validation-for="UserName" class="text-danger"></span>
+        </div>
+        <div class="mb-3">
+            <label asp-for="Email" class="form-label"></label>
+            <input asp-for="Email" class="form-control" autocomplete="email" />
+            <span asp-validation-for="Email" class="text-danger"></span>
+        </div>
+        <div class="mb-3">
+            <label asp-for="Password" class="form-label"></label>
+            <input asp-for="Password" class="form-control" autocomplete="new-password" />
+            <div class="form-text">@(isEdit ? "เว้นว่างถ้าไม่ต้องการเปลี่ยนรหัสผ่าน" : "อย่างน้อย 6 ตัวอักษร")</div>
+            <span asp-validation-for="Password" class="text-danger"></span>
+        </div>
+        <div class="mb-3">
+            <label asp-for="ConfirmPassword" class="form-label"></label>
+            <input asp-for="ConfirmPassword" class="form-control" autocomplete="new-password" />
+            <span asp-validation-for="ConfirmPassword" class="text-danger"></span>
+        </div>
+        <div class="mb-3">
+            <label asp-for="Role" class="form-label"></label>
+            @if (Model.RoleLocked)
+            {
+                <input type="hidden" asp-for="Role" />
+                <input class="form-control" value="Security" readonly />
+                <div class="form-text">บัญชี 9641 ใช้สิทธิ์ Security เท่านั้น</div>
+            }
+            else
+            {
+                <select asp-for="Role" class="form-select">
+                    <option value="Admin">Admin</option>
+                    <option value="Security">Security</option>
+                    <option value="Reception">Reception</option>
+                    <option value="Host">Host</option>
+                </select>
+            }
+            <span asp-validation-for="Role" class="text-danger"></span>
+        </div>
+        <div class="form-check mb-3">
+            <input asp-for="IsActive" class="form-check-input" />
+            <label asp-for="IsActive" class="form-check-label"></label>
+        </div>
+        <button class="btn btn-teal">บันทึก</button>
+        <a class="btn btn-outline-secondary" asp-action="Index">ยกเลิก</a>
+    </form>
+</div>
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}
